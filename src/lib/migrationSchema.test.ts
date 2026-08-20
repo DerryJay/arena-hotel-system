@@ -1,4 +1,4 @@
-﻿import { readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -24,6 +24,11 @@ const bookingReferenceMigration = readFileSync(
 
 const checkInMigration = readFileSync(
   join(process.cwd(), 'supabase', 'migrations', '20260820000600_add_check_in_reservation_rpc.sql'),
+  'utf8'
+).replace(/\s+/g, ' ');
+
+const roomManagementMigration = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260820000700_add_room_management_rpc.sql'),
   'utf8'
 ).replace(/\s+/g, ' ');
 
@@ -106,5 +111,30 @@ describe('check-in reservation RPC migration', () => {
     expect(checkInMigration).toContain("v_reservation.status not in ('confirmed', 'reserved')");
     expect(checkInMigration).toContain("v_reservation.room_status in ('maintenance', 'blocked')");
     expect(checkInMigration).toContain('grant execute on function public.check_in_reservation(uuid) to authenticated');
+  });
+});
+
+describe('room management RPC migration', () => {
+  it('creates an authenticated hotel-scoped room management function', () => {
+    expect(roomManagementMigration).toContain('create or replace function public.manage_room(');
+    expect(roomManagementMigration).toContain('security definer');
+    expect(roomManagementMigration).toContain('staff_profiles.id = auth.uid()');
+    expect(roomManagementMigration).toContain("v_staff_role not in ('owner', 'front_desk')");
+    expect(roomManagementMigration).toContain('rooms.hotel_id = v_staff_hotel_id');
+    expect(roomManagementMigration).toContain('room_types.hotel_id = v_staff_hotel_id');
+  });
+
+  it('protects occupied rooms and duplicate room numbers at the database boundary', () => {
+    expect(roomManagementMigration).toContain("v_room.status = 'occupied' and p_status <> 'occupied'");
+    expect(roomManagementMigration).toContain("v_room.status <> 'occupied' and p_status = 'occupied'");
+    expect(roomManagementMigration).toContain('when unique_violation then');
+    expect(roomManagementMigration).toContain('A room with this number already exists for this hotel.');
+  });
+
+  it('updates room type rate and capacity through the existing room_types model', () => {
+    expect(roomManagementMigration).toContain('update public.room_types');
+    expect(roomManagementMigration).toContain('base_rate = p_base_rate');
+    expect(roomManagementMigration).toContain('max_occupancy = p_max_occupancy');
+    expect(roomManagementMigration).toContain('grant execute on function public.manage_room');
   });
 });

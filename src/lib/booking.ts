@@ -54,7 +54,7 @@ export interface BookingConfirmation {
 }
 
 const inventoryHoldingStatuses = new Set(['reserved', 'confirmed', 'checked_in']);
-const unavailableOperationalStatuses = new Set<RoomStatus>(['maintenance', 'blocked']);
+const unavailableOperationalStatuses = new Set<RoomStatus>(['cleaning', 'maintenance', 'blocked']);
 const allowedBookingRoles = new Set(['owner', 'front_desk']);
 const allowedBookingSources = new Set(['front_desk', 'phone', 'walk_in', 'email']);
 
@@ -305,4 +305,3 @@ export async function createBooking(
     }
   };
 }
-

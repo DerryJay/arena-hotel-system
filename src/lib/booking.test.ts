@@ -14,6 +14,7 @@ const rooms: BookingRoomOption[] = [
   { id: 'room-101', roomNumber: '101', roomTypeId: 'standard', roomTypeName: 'Standard', baseRate: 25000, status: 'available' },
   { id: 'room-102', roomNumber: '102', roomTypeId: 'standard', roomTypeName: 'Standard', baseRate: 25000, status: 'maintenance' },
   { id: 'room-103', roomNumber: '103', roomTypeId: 'standard', roomTypeName: 'Standard', baseRate: 25000, status: 'blocked' },
+  { id: 'room-104', roomNumber: '104', roomTypeId: 'standard', roomTypeName: 'Standard', baseRate: 25000, status: 'cleaning' },
   { id: 'room-201', roomNumber: '201', roomTypeId: 'deluxe', roomTypeName: 'Deluxe', baseRate: 35000, status: 'available' }
 ];
 
@@ -53,6 +54,10 @@ describe('booking workflow rules', () => {
 
   it('excludes blocked rooms', () => {
     expect(filterAvailableRooms(rooms, [], '2026-09-12', '2026-09-14').map((room) => room.id)).not.toContain('room-103');
+  });
+
+  it('excludes cleaning rooms', () => {
+    expect(filterAvailableRooms(rooms, [], '2026-09-12', '2026-09-14').map((room) => room.id)).not.toContain('room-104');
   });
 
   it('rejects invalid dates and invalid adult count', () => {

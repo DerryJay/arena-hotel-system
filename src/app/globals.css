@@ -533,3 +533,109 @@ h2 {
   background: #e4efe7;
   font-weight: 800;
 }
+
+.rooms-layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.rooms-grid-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.rooms-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.rooms-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.rooms-table th,
+.rooms-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #ece6dc;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.rooms-table th {
+  color: #667066;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.rooms-table td {
+  color: #17201a;
+  font-weight: 700;
+}
+
+.room-editor,
+.room-filter,
+.rooms-table-panel {
+  min-width: 0;
+}
+
+.form-grid--compact {
+  align-items: end;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.status-badge[data-status='available'] {
+  color: #0f5132;
+  background: #e4efe7;
+}
+
+.status-badge[data-status='occupied'] {
+  color: #254a78;
+  background: #e7eef8;
+}
+
+.status-badge[data-status='cleaning'] {
+  color: #8a5b13;
+  background: #fff3d8;
+}
+
+.status-badge[data-status='maintenance'],
+.status-badge[data-status='blocked'] {
+  color: #8a3a1f;
+  background: #fff0e8;
+}
+
+.icon-text-action {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #0f5132;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.icon-text-action:visited {
+  color: #0f5132;
+}
+
+@media (max-width: 1050px) {
+  .rooms-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}

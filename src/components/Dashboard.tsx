@@ -1,5 +1,5 @@
-﻿import Link from 'next/link';
-import { BedDouble, CalendarCheck, CheckCircle2, ClipboardCheck, DoorOpen, LogOut, Plus, WalletCards } from 'lucide-react';
+import Link from 'next/link';
+import { BedDouble, Building2, CalendarCheck, CheckCircle2, ClipboardCheck, DoorOpen, LogOut, Plus, WalletCards } from 'lucide-react';
 import { StatCard } from './StatCard';
 import type { DashboardData, HousekeepingStatus, Reservation, ReservationStatus, RoomStatus } from '../lib/types';
 import { formatCurrency, getDashboardStats } from '../lib/dashboardMetrics';
@@ -67,6 +67,9 @@ export function Dashboard({ data, staffName, logoutAction, checkInAction, checkI
           <h1>{data.hotel.name}</h1>
         </div>
         <div className="topbar__actions">
+          <Link className="text-action" href="/dashboard/rooms">
+            <Building2 size={18} /> Rooms
+          </Link>
           <Link className="primary-action" href="/dashboard/new-booking">
             <Plus size={18} /> New Booking
           </Link>
