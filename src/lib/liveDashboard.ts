@@ -15,6 +15,7 @@ type RoomRow = {
 
 type ReservationRow = {
   id: string;
+  booking_reference: string | null;
   status: ReservationStatus;
   check_in: string;
   check_out: string;
@@ -95,7 +96,7 @@ export async function getLiveDashboardData(supabase: SupabaseClient, access: Sta
       .order('room_number', { ascending: true }),
     supabase
       .from('reservations')
-      .select('id, status, check_in, check_out, nightly_rate, rooms(room_number), guests(full_name)')
+      .select('id, booking_reference, status, check_in, check_out, nightly_rate, rooms(room_number), guests(full_name)')
       .eq('hotel_id', hotelId)
       .order('check_in', { ascending: true }),
     supabase
@@ -156,6 +157,7 @@ export async function getLiveDashboardData(supabase: SupabaseClient, access: Sta
     })),
     reservations: reservationRows.map((reservation) => ({
       id: reservation.id,
+      bookingReference: reservation.booking_reference ?? undefined,
       roomNumber: reservation.rooms?.room_number ?? 'Unassigned',
       guestName: reservation.guests?.full_name ?? 'Unknown guest',
       status: reservation.status,

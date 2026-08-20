@@ -27,6 +27,7 @@ export interface Guest {
 
 export interface Reservation {
   id: string;
+  bookingReference?: string;
   roomNumber: string;
   guestName: string;
   status: ReservationStatus;

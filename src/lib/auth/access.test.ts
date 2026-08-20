@@ -12,11 +12,17 @@ const ownerAccess: StaffHotelAccessRecord = {
   hotel_name: '3dHotels'
 };
 
-describe('owner dashboard access', () => {
+describe('dashboard access', () => {
   it('allows an authorised active owner profile for 3dHotels', () => {
     expect(evaluateDashboardAccess(user, ownerAccess)).toMatchObject({
       status: 'authorized',
       access: ownerAccess
+    });
+  });
+
+  it('allows an authorised active front-desk profile for 3dHotels', () => {
+    expect(evaluateDashboardAccess(user, { ...ownerAccess, role: 'front_desk' })).toMatchObject({
+      status: 'authorized'
     });
   });
 

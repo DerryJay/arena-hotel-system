@@ -1,4 +1,5 @@
-import { BedDouble, CalendarCheck, ClipboardCheck, DoorOpen, LogOut, WalletCards } from 'lucide-react';
+import Link from 'next/link';
+import { BedDouble, CalendarCheck, ClipboardCheck, DoorOpen, LogOut, Plus, WalletCards } from 'lucide-react';
 import { StatCard } from './StatCard';
 import type { DashboardData, HousekeepingStatus, ReservationStatus, RoomStatus } from '../lib/types';
 import { formatCurrency, getDashboardStats } from '../lib/dashboardMetrics';
@@ -45,11 +46,16 @@ export function Dashboard({ data, staffName, logoutAction }: DashboardProps) {
           <p>{`Signed in as ${staffName}`}</p>
           <h1>{data.hotel.name}</h1>
         </div>
-        <form action={logoutAction}>
-          <button className="icon-button" type="submit" aria-label="Sign out" title="Sign out">
-            <LogOut size={18} />
-          </button>
-        </form>
+        <div className="topbar__actions">
+          <Link className="primary-action" href="/dashboard/new-booking">
+            <Plus size={18} /> New Booking
+          </Link>
+          <form action={logoutAction}>
+            <button className="icon-button" type="submit" aria-label="Sign out" title="Sign out">
+              <LogOut size={18} />
+            </button>
+          </form>
+        </div>
       </header>
 
       <section className="stats-grid" aria-label="Hotel performance">
@@ -91,8 +97,8 @@ export function Dashboard({ data, staffName, logoutAction }: DashboardProps) {
               {data.reservations.map((reservation) => (
                 <article className="list-row" key={reservation.id}>
                   <div>
-                    <strong>{reservation.guestName}</strong>
-                    <span>Room {reservation.roomNumber}</span>
+                    <strong>{reservation.bookingReference ?? reservation.guestName}</strong>
+                    <span>{reservation.guestName} - Room {reservation.roomNumber}</span>
                   </div>
                   <div className="list-row__meta">
                     <small>{reservationStatusLabels[reservation.status]}</small>

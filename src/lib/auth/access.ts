@@ -42,7 +42,7 @@ export function evaluateDashboardAccess(
     return { status: 'inactive', message: 'This staff account is inactive.' };
   }
 
-  if (access.role !== 'owner') {
+  if (!['owner', 'front_desk'].includes(access.role)) {
     return { status: 'wrong_role', message: 'Account not authorised for this hotel.' };
   }
 

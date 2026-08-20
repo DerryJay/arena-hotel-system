@@ -365,3 +365,126 @@ h2 {
   color: #667066;
   font-weight: 700;
 }
+
+.topbar__actions,
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.primary-action,
+.text-action,
+.booking-form button,
+.booking-filter button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.primary-action,
+.booking-form button,
+.booking-filter button {
+  padding: 0 14px;
+  color: #fff;
+  background: #0f5132;
+}
+
+.primary-action:visited,
+.text-action:visited {
+  color: inherit;
+}
+
+.text-action {
+  padding: 0 12px;
+  color: #0f5132;
+  background: #e4efe7;
+}
+
+.booking-layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.booking-filter,
+.booking-form,
+.confirmation-panel {
+  max-width: 980px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 18px;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 7px;
+  color: #36433a;
+  font-weight: 800;
+}
+
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #cfd8ce;
+  border-radius: 6px;
+  padding: 0 12px;
+  color: #17201a;
+  background: #fff;
+}
+
+.form-grid textarea {
+  padding: 12px;
+  resize: vertical;
+}
+
+.form-grid__wide {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  justify-content: flex-end;
+  padding: 0 18px 18px;
+}
+
+.confirmation-panel {
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #b9dec5;
+  border-radius: 8px;
+  color: #0f5132;
+  background: #eef8f0;
+}
+
+.confirmation-panel h2,
+.confirmation-panel p {
+  margin: 0 0 6px;
+}
+
+@media (max-width: 800px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar__actions,
+  .confirmation-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

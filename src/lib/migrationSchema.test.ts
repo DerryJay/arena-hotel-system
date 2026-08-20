@@ -17,6 +17,11 @@ const grantsMigration = readFileSync(
   'utf8'
 ).replace(/\s+/g, ' ');
 
+const bookingReferenceMigration = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260820000500_add_reservation_booking_reference.sql'),
+  'utf8'
+).replace(/\s+/g, ' ');
+
 describe('initial hotel schema migration', () => {
   it('keeps RLS enabled on tenant-scoped tables', () => {
     for (const table of ['hotels', 'staff_profiles', 'room_types', 'rooms', 'guests', 'reservations', 'housekeeping_tasks', 'folio_charges', 'payments']) {
@@ -65,5 +70,14 @@ describe('authenticated table grant migration', () => {
     expect(grantsMigration).toContain('grant insert on table public.folio_charges to authenticated');
     expect(grantsMigration).toContain('grant insert on table public.payments to authenticated');
     expect(grantsMigration).not.toContain('grant insert, update, delete on table public.payments to authenticated');
+  });
+});
+
+describe('reservation booking reference migration', () => {
+  it('adds a nullable unique staff-facing booking reference and insert trigger', () => {
+    expect(bookingReferenceMigration).toContain('alter table public.reservations add column booking_reference text');
+    expect(bookingReferenceMigration).toContain('create unique index reservations_booking_reference_key');
+    expect(bookingReferenceMigration).toContain("'3DH-' || to_char(current_date, 'YYYYMMDD')");
+    expect(bookingReferenceMigration).toContain('create trigger reservations_set_booking_reference');
   });
 });
