@@ -1,10 +1,11 @@
 create extension if not exists pgcrypto;
+create extension if not exists btree_gist;
 
 create type public.staff_role as enum ('owner', 'manager', 'front_desk', 'housekeeping', 'accounting');
-create type public.room_status as enum ('available', 'occupied', 'dirty', 'maintenance', 'blocked');
-create type public.reservation_status as enum ('draft', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show');
+create type public.room_status as enum ('available', 'occupied', 'reserved', 'cleaning', 'maintenance', 'blocked');
+create type public.reservation_status as enum ('pending', 'reserved', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show');
 create type public.housekeeping_status as enum ('todo', 'in_progress', 'done', 'verified');
-create type public.payment_status as enum ('pending', 'paid', 'refunded', 'void');
+create type public.payment_status as enum ('unpaid', 'partially_paid', 'paid', 'refunded', 'void');
 
 create table public.hotels (
   id uuid primary key default gen_random_uuid(),
@@ -69,7 +70,7 @@ create table public.reservations (
   hotel_id uuid not null references public.hotels(id) on delete cascade,
   room_id uuid not null references public.rooms(id) on delete restrict,
   guest_id uuid not null references public.guests(id) on delete restrict,
-  status public.reservation_status not null default 'confirmed',
+  status public.reservation_status not null default 'pending',
   check_in date not null,
   check_out date not null,
   adults integer not null default 1 check (adults > 0),
@@ -80,7 +81,11 @@ create table public.reservations (
   created_by uuid references public.staff_profiles(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (check_out > check_in)
+  check (check_out > check_in),
+  constraint reservations_no_inventory_overlap exclude using gist (
+    room_id with =,
+    daterange(check_in, check_out, '[)') with &&
+  ) where (status in ('reserved', 'confirmed', 'checked_in'))
 );
 
 create table public.housekeeping_tasks (
@@ -111,7 +116,7 @@ create table public.payments (
   hotel_id uuid not null references public.hotels(id) on delete cascade,
   reservation_id uuid not null references public.reservations(id) on delete cascade,
   method text not null default 'cash',
-  status public.payment_status not null default 'paid',
+  status public.payment_status not null default 'unpaid',
   amount numeric(12, 2) not null check (amount >= 0),
   reference text,
   posted_at timestamptz not null default now(),
@@ -177,6 +182,16 @@ as $$
     and is_active = true
 $$;
 
+create or replace function public.current_staff_can_write_operations()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select public.current_staff_role() in ('owner', 'manager', 'front_desk')
+$$;
+
 alter table public.hotels enable row level security;
 alter table public.staff_profiles enable row level security;
 alter table public.room_types enable row level security;
@@ -190,8 +205,11 @@ alter table public.payments enable row level security;
 create policy "Staff can read their hotel" on public.hotels
 for select using (id = public.current_staff_hotel_id());
 
-create policy "Managers can update their hotel" on public.hotels
+create policy "Owners and managers can update their hotel" on public.hotels
 for update using (
+  id = public.current_staff_hotel_id()
+  and public.current_staff_role() in ('owner', 'manager')
+) with check (
   id = public.current_staff_hotel_id()
   and public.current_staff_role() in ('owner', 'manager')
 );
@@ -199,7 +217,30 @@ for update using (
 create policy "Staff can read profiles in their hotel" on public.staff_profiles
 for select using (hotel_id = public.current_staff_hotel_id() or id = auth.uid());
 
-create policy "Managers can manage staff in their hotel" on public.staff_profiles
+create policy "Owners can manage staff in their hotel" on public.staff_profiles
+for all using (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_role() = 'owner'
+) with check (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_role() = 'owner'
+);
+
+create policy "Managers can manage operational staff in their hotel" on public.staff_profiles
+for all using (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_role() = 'manager'
+  and role in ('front_desk', 'housekeeping', 'accounting')
+) with check (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_role() = 'manager'
+  and role in ('front_desk', 'housekeeping', 'accounting')
+);
+
+create policy "Staff can read room types in their hotel" on public.room_types
+for select using (hotel_id = public.current_staff_hotel_id());
+
+create policy "Owners and managers can manage room types" on public.room_types
 for all using (
   hotel_id = public.current_staff_hotel_id()
   and public.current_staff_role() in ('owner', 'manager')
@@ -208,30 +249,72 @@ for all using (
   and public.current_staff_role() in ('owner', 'manager')
 );
 
-create policy "Staff can access room types in their hotel" on public.room_types
-for all using (hotel_id = public.current_staff_hotel_id())
+create policy "Staff can read rooms in their hotel" on public.rooms
+for select using (hotel_id = public.current_staff_hotel_id());
+
+create policy "Staff can update room operations in their hotel" on public.rooms
+for update using (hotel_id = public.current_staff_hotel_id())
 with check (hotel_id = public.current_staff_hotel_id());
 
-create policy "Staff can access rooms in their hotel" on public.rooms
-for all using (hotel_id = public.current_staff_hotel_id())
+create policy "Owners and managers can create rooms" on public.rooms
+for insert with check (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_role() in ('owner', 'manager')
+);
+
+create policy "Owners and managers can delete rooms" on public.rooms
+for delete using (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_role() in ('owner', 'manager')
+);
+
+create policy "Staff can read guests in their hotel" on public.guests
+for select using (hotel_id = public.current_staff_hotel_id());
+
+create policy "Operations staff can manage guests in their hotel" on public.guests
+for all using (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_can_write_operations()
+) with check (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_can_write_operations()
+);
+
+create policy "Staff can read reservations in their hotel" on public.reservations
+for select using (hotel_id = public.current_staff_hotel_id());
+
+create policy "Operations staff can manage reservations in their hotel" on public.reservations
+for all using (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_can_write_operations()
+) with check (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_can_write_operations()
+);
+
+create policy "Staff can read housekeeping in their hotel" on public.housekeeping_tasks
+for select using (hotel_id = public.current_staff_hotel_id());
+
+create policy "Staff can update housekeeping in their hotel" on public.housekeeping_tasks
+for update using (hotel_id = public.current_staff_hotel_id())
 with check (hotel_id = public.current_staff_hotel_id());
 
-create policy "Staff can access guests in their hotel" on public.guests
-for all using (hotel_id = public.current_staff_hotel_id())
-with check (hotel_id = public.current_staff_hotel_id());
+create policy "Operations staff can create housekeeping tasks" on public.housekeeping_tasks
+for insert with check (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_role() in ('owner', 'manager', 'front_desk', 'housekeeping')
+);
 
-create policy "Staff can access reservations in their hotel" on public.reservations
-for all using (hotel_id = public.current_staff_hotel_id())
-with check (hotel_id = public.current_staff_hotel_id());
-
-create policy "Staff can access housekeeping in their hotel" on public.housekeeping_tasks
-for all using (hotel_id = public.current_staff_hotel_id())
-with check (hotel_id = public.current_staff_hotel_id());
+create policy "Owners and managers can delete housekeeping tasks" on public.housekeeping_tasks
+for delete using (
+  hotel_id = public.current_staff_hotel_id()
+  and public.current_staff_role() in ('owner', 'manager')
+);
 
 create policy "Staff can read folio charges in their hotel" on public.folio_charges
 for select using (hotel_id = public.current_staff_hotel_id());
 
-create policy "Front desk can create folio charges" on public.folio_charges
+create policy "Front desk and accounting can create folio charges" on public.folio_charges
 for insert with check (
   hotel_id = public.current_staff_hotel_id()
   and public.current_staff_role() in ('owner', 'manager', 'front_desk', 'accounting')
@@ -240,9 +323,8 @@ for insert with check (
 create policy "Staff can read payments in their hotel" on public.payments
 for select using (hotel_id = public.current_staff_hotel_id());
 
-create policy "Front desk can record payments" on public.payments
+create policy "Front desk and accounting can record payments" on public.payments
 for insert with check (
   hotel_id = public.current_staff_hotel_id()
   and public.current_staff_role() in ('owner', 'manager', 'front_desk', 'accounting')
 );
-

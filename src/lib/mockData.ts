@@ -8,8 +8,8 @@ export const demoDashboardData: DashboardData = {
   },
   rooms: [
     { id: '101', roomNumber: '101', floor: '1', typeName: 'Classic Queen', status: 'occupied', nightlyRate: 45000 },
-    { id: '102', roomNumber: '102', floor: '1', typeName: 'Classic Queen', status: 'available', nightlyRate: 45000 },
-    { id: '201', roomNumber: '201', floor: '2', typeName: 'Executive King', status: 'dirty', nightlyRate: 75000 },
+    { id: '102', roomNumber: '102', floor: '1', typeName: 'Classic Queen', status: 'reserved', nightlyRate: 45000 },
+    { id: '201', roomNumber: '201', floor: '2', typeName: 'Executive King', status: 'cleaning', nightlyRate: 75000 },
     { id: '202', roomNumber: '202', floor: '2', typeName: 'Executive King', status: 'occupied', nightlyRate: 75000 },
     { id: '301', roomNumber: '301', floor: '3', typeName: 'Arena Suite', status: 'maintenance', nightlyRate: 140000 },
     { id: '302', roomNumber: '302', floor: '3', typeName: 'Arena Suite', status: 'available', nightlyRate: 140000 }
@@ -39,7 +39,7 @@ export const demoDashboardData: DashboardData = {
       id: 'res-3',
       roomNumber: '102',
       guestName: 'Mina Carter',
-      status: 'confirmed',
+      status: 'reserved',
       checkIn: '2026-08-20',
       checkOut: '2026-08-23',
       nightlyRate: 45000,
@@ -62,4 +62,3 @@ export const demoDashboardData: DashboardData = {
     { id: 'hk-3', roomNumber: '102', status: 'done', dueOn: '2026-08-20', notes: 'Inspect before arrival' }
   ]
 };
-

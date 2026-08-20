@@ -12,13 +12,15 @@ interface DashboardProps {
 const roomStatusLabels: Record<RoomStatus, string> = {
   available: 'Available',
   occupied: 'Occupied',
-  dirty: 'Dirty',
+  reserved: 'Reserved',
+  cleaning: 'Cleaning',
   maintenance: 'Maintenance',
   blocked: 'Blocked'
 };
 
 const reservationStatusLabels: Record<ReservationStatus, string> = {
-  draft: 'Draft',
+  pending: 'Pending',
+  reserved: 'Reserved',
   confirmed: 'Confirmed',
   checked_in: 'Checked in',
   checked_out: 'Checked out',
@@ -118,4 +120,3 @@ export function Dashboard({ data, isDemo, onSignOut }: DashboardProps) {
     </main>
   );
 }
-

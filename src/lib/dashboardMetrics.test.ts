@@ -14,7 +14,7 @@ describe('dashboard metrics', () => {
   it('summarizes the core hotel dashboard', () => {
     expect(getDashboardStats(demoDashboardData)).toMatchObject({
       occupancyRate: 33,
-      availableRooms: 2,
+      availableRooms: 1,
       arrivals: 1,
       departures: 1,
       openHousekeeping: 3,
@@ -22,4 +22,3 @@ describe('dashboard metrics', () => {
     });
   });
 });
-

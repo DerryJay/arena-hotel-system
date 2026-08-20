@@ -1,6 +1,6 @@
 import type { DashboardData, Reservation, Room } from './types';
 
-const activeReservationStatuses = new Set(['confirmed', 'checked_in']);
+const activeReservationStatuses = new Set(['reserved', 'confirmed', 'checked_in']);
 
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-NG', {
@@ -26,7 +26,7 @@ export function getExpectedRoomRevenue(reservations: Reservation[]): number {
 }
 
 export function getDashboardStats(data: DashboardData) {
-  const arrivals = data.reservations.filter((reservation) => reservation.status === 'confirmed').length;
+  const arrivals = data.reservations.filter((reservation) => reservation.status === 'reserved').length;
   const departures = data.reservations.filter((reservation) => reservation.status === 'checked_out').length;
   const openHousekeeping = data.housekeeping.filter((task) => task.status !== 'verified').length;
 
@@ -39,4 +39,3 @@ export function getDashboardStats(data: DashboardData) {
     expectedRoomRevenue: getExpectedRoomRevenue(data.reservations)
   };
 }
-

@@ -269,7 +269,11 @@ h2 {
   border-left-color: #2f5e99;
 }
 
-.room-tile[data-status='dirty'] {
+.room-tile[data-status='reserved'] {
+  border-left-color: #6d5bd0;
+}
+
+.room-tile[data-status='cleaning'] {
   border-left-color: #b36b21;
 }
 
@@ -354,4 +358,3 @@ h2 {
     align-items: flex-start;
   }
 }
-

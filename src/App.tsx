@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { AuthPanel } from './components/AuthPanel';
@@ -54,4 +56,3 @@ export function App() {
 
   return <Dashboard data={demoDashboardData} isDemo={isDemo} onSignOut={handleSignOut} />;
 }
-

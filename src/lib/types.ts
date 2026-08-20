@@ -1,6 +1,7 @@
-export type RoomStatus = 'available' | 'occupied' | 'dirty' | 'maintenance' | 'blocked';
-export type ReservationStatus = 'draft' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
+export type RoomStatus = 'available' | 'occupied' | 'reserved' | 'cleaning' | 'maintenance' | 'blocked';
+export type ReservationStatus = 'pending' | 'reserved' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type HousekeepingStatus = 'todo' | 'in_progress' | 'done' | 'verified';
+export type PaymentStatus = 'unpaid' | 'partially_paid' | 'paid' | 'refunded' | 'void';
 
 export interface Hotel {
   id: string;
@@ -49,4 +50,3 @@ export interface DashboardData {
   reservations: Reservation[];
   housekeeping: HousekeepingTask[];
 }
-
