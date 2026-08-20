@@ -18,5 +18,5 @@ export default async function DashboardPage() {
     return <AccessDenied reason={access.message} logoutAction={logoutAction} />;
   }
 
-  return <Dashboard data={demoDashboardData} isDemo={false} logoutAction={logoutAction} staffName={access.profile.full_name} />;
+  return <Dashboard data={demoDashboardData} isDemo={false} logoutAction={logoutAction} staffName={access.access.full_name} />;
 }

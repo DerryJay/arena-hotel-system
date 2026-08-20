@@ -1,11 +1,11 @@
-import { evaluateDashboardAccess, type HotelRecord, type StaffProfileRecord } from './access';
+import { evaluateDashboardAccess, type StaffHotelAccessRecord } from './access';
 import { createSupabaseServerClient } from '../supabase/server';
 
 export async function getDashboardAccess() {
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    return evaluateDashboardAccess(null, null, null);
+    return evaluateDashboardAccess(null, null);
   }
 
   const {
@@ -13,24 +13,16 @@ export async function getDashboardAccess() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return evaluateDashboardAccess(null, null, null);
+    return evaluateDashboardAccess(null, null);
   }
 
-  const { data: profile } = await supabase
-    .from('staff_profiles')
-    .select('id, hotel_id, full_name, role, is_active')
-    .eq('id', user.id)
-    .maybeSingle<StaffProfileRecord>();
+  const { data, error } = await supabase.rpc('get_current_staff_hotel_access');
 
-  if (!profile || !profile.is_active) {
-    return evaluateDashboardAccess(user, profile, null);
+  if (error) {
+    return evaluateDashboardAccess(user, null, true);
   }
 
-  const { data: hotel } = await supabase
-    .from('hotels')
-    .select('id, slug, name')
-    .eq('id', profile.hotel_id)
-    .maybeSingle<HotelRecord>();
+  const access = Array.isArray(data) ? (data[0] as StaffHotelAccessRecord | undefined) : undefined;
 
-  return evaluateDashboardAccess(user, profile, hotel);
+  return evaluateDashboardAccess(user, access ?? null);
 }
