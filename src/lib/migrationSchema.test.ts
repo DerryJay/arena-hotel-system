@@ -12,6 +12,11 @@ const accessRpcMigration = readFileSync(
   'utf8'
 ).replace(/\s+/g, ' ');
 
+const grantsMigration = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260820000400_grant_authenticated_hotel_table_access.sql'),
+  'utf8'
+).replace(/\s+/g, ' ');
+
 describe('initial hotel schema migration', () => {
   it('keeps RLS enabled on tenant-scoped tables', () => {
     for (const table of ['hotels', 'staff_profiles', 'room_types', 'rooms', 'guests', 'reservations', 'housekeeping_tasks', 'folio_charges', 'payments']) {
@@ -44,5 +49,21 @@ describe('current staff hotel access RPC migration', () => {
   it('is executable by authenticated users only through an explicit grant', () => {
     expect(accessRpcMigration).toContain('revoke all on function public.get_current_staff_hotel_access() from public');
     expect(accessRpcMigration).toContain('grant execute on function public.get_current_staff_hotel_access() to authenticated');
+  });
+});
+
+describe('authenticated table grant migration', () => {
+  it('grants authenticated users base table privileges needed by PostgREST while RLS remains enabled', () => {
+    expect(grantsMigration).toContain('grant usage on schema public to authenticated');
+
+    for (const table of ['hotels', 'staff_profiles', 'room_types', 'rooms', 'guests', 'reservations', 'housekeeping_tasks', 'folio_charges', 'payments']) {
+      expect(grantsMigration).toContain(`grant select on table public.${table} to authenticated`);
+    }
+  });
+
+  it('does not grant broad payment mutation privileges beyond existing insert policies', () => {
+    expect(grantsMigration).toContain('grant insert on table public.folio_charges to authenticated');
+    expect(grantsMigration).toContain('grant insert on table public.payments to authenticated');
+    expect(grantsMigration).not.toContain('grant insert, update, delete on table public.payments to authenticated');
   });
 });

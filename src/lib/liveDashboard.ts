@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 import type { DashboardData, HousekeepingStatus, ReservationStatus, RoomStatus } from './types';
 import type { StaffHotelAccessRecord } from './auth/access';
 
@@ -61,6 +61,25 @@ function sumAmountsByReservation(rows: AmountRow[]): Map<string, number> {
   }, new Map<string, number>());
 }
 
+function logDashboardQueryError(source: string, error: PostgrestError): void {
+  if (process.env.NODE_ENV !== 'development') {
+    return;
+  }
+
+  console.error('[dashboard:data]', {
+    source,
+    code: error.code,
+    message: error.message,
+    details: error.details,
+    hint: error.hint
+  });
+}
+
+function throwDashboardQueryError(source: string, error: PostgrestError): never {
+  logDashboardQueryError(source, error);
+  throw new Error(`Unable to load ${source}: ${error.message}`);
+}
+
 export async function getLiveDashboardData(supabase: SupabaseClient, access: StaffHotelAccessRecord): Promise<DashboardData> {
   if (!access.hotel_id) {
     throw new Error('Authenticated staff profile is missing a hotel id.');
@@ -87,15 +106,15 @@ export async function getLiveDashboardData(supabase: SupabaseClient, access: Sta
   ]);
 
   if (roomsResponse.error) {
-    throw new Error(`Unable to load rooms: ${roomsResponse.error.message}`);
+    throwDashboardQueryError('rooms', roomsResponse.error);
   }
 
   if (reservationsResponse.error) {
-    throw new Error(`Unable to load reservations: ${reservationsResponse.error.message}`);
+    throwDashboardQueryError('reservations', reservationsResponse.error);
   }
 
   if (housekeepingResponse.error) {
-    throw new Error(`Unable to load housekeeping tasks: ${housekeepingResponse.error.message}`);
+    throwDashboardQueryError('housekeeping tasks', housekeepingResponse.error);
   }
 
   const reservationRows = (reservationsResponse.data ?? []) as unknown as ReservationRow[];
@@ -110,11 +129,11 @@ export async function getLiveDashboardData(supabase: SupabaseClient, access: Sta
     ]);
 
     if (chargesResponse.error) {
-      throw new Error(`Unable to load folio charges: ${chargesResponse.error.message}`);
+      throwDashboardQueryError('folio charges', chargesResponse.error);
     }
 
     if (paymentsResponse.error) {
-      throw new Error(`Unable to load payments: ${paymentsResponse.error.message}`);
+      throwDashboardQueryError('payments', paymentsResponse.error);
     }
 
     chargeTotals = sumAmountsByReservation((chargesResponse.data ?? []) as unknown as AmountRow[]);
