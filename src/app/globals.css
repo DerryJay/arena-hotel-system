@@ -358,3 +358,10 @@ h2 {
     align-items: flex-start;
   }
 }
+
+.empty-state {
+  margin: 0;
+  padding: 22px 18px;
+  color: #667066;
+  font-weight: 700;
+}
