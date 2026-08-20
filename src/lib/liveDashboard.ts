@@ -1,6 +1,7 @@
-import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
+﻿import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
 import type { DashboardData, HousekeepingStatus, ReservationStatus, RoomStatus } from './types';
 import type { StaffHotelAccessRecord } from './auth/access';
+import { getReservationStayValue } from './dashboardMetrics';
 
 type RoomRow = {
   id: string;
@@ -155,17 +156,26 @@ export async function getLiveDashboardData(supabase: SupabaseClient, access: Sta
       status: room.status,
       nightlyRate: toNumber(room.room_types?.base_rate)
     })),
-    reservations: reservationRows.map((reservation) => ({
-      id: reservation.id,
-      bookingReference: reservation.booking_reference ?? undefined,
-      roomNumber: reservation.rooms?.room_number ?? 'Unassigned',
-      guestName: reservation.guests?.full_name ?? 'Unknown guest',
-      status: reservation.status,
-      checkIn: reservation.check_in,
-      checkOut: reservation.check_out,
-      nightlyRate: toNumber(reservation.nightly_rate),
-      balance: Math.max(0, (chargeTotals.get(reservation.id) ?? 0) - (paymentTotals.get(reservation.id) ?? 0))
-    })),
+    reservations: reservationRows.map((reservation) => {
+      const nightlyRate = toNumber(reservation.nightly_rate);
+      const mappedReservation = {
+        id: reservation.id,
+        bookingReference: reservation.booking_reference ?? undefined,
+        roomNumber: reservation.rooms?.room_number ?? 'Unassigned',
+        guestName: reservation.guests?.full_name ?? 'Unknown guest',
+        status: reservation.status,
+        checkIn: reservation.check_in,
+        checkOut: reservation.check_out,
+        nightlyRate,
+        totalStayValue: 0,
+        balance: Math.max(0, (chargeTotals.get(reservation.id) ?? 0) - (paymentTotals.get(reservation.id) ?? 0))
+      };
+
+      return {
+        ...mappedReservation,
+        totalStayValue: getReservationStayValue(mappedReservation)
+      };
+    }),
     housekeeping: ((housekeepingResponse.data ?? []) as unknown as HousekeepingRow[]).map((task) => ({
       id: task.id,
       roomNumber: task.rooms?.room_number ?? 'Unassigned',

@@ -1,4 +1,4 @@
-export type RoomStatus = 'available' | 'occupied' | 'reserved' | 'cleaning' | 'maintenance' | 'blocked';
+﻿export type RoomStatus = 'available' | 'occupied' | 'reserved' | 'cleaning' | 'maintenance' | 'blocked';
 export type ReservationStatus = 'pending' | 'reserved' | 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type HousekeepingStatus = 'todo' | 'in_progress' | 'done' | 'verified';
 export type PaymentStatus = 'unpaid' | 'partially_paid' | 'paid' | 'refunded' | 'void';
@@ -34,6 +34,7 @@ export interface Reservation {
   checkIn: string;
   checkOut: string;
   nightlyRate: number;
+  totalStayValue: number;
   balance: number;
 }
 

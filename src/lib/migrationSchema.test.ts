@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+﻿import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -19,6 +19,11 @@ const grantsMigration = readFileSync(
 
 const bookingReferenceMigration = readFileSync(
   join(process.cwd(), 'supabase', 'migrations', '20260820000500_add_reservation_booking_reference.sql'),
+  'utf8'
+).replace(/\s+/g, ' ');
+
+const checkInMigration = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260820000600_add_check_in_reservation_rpc.sql'),
   'utf8'
 ).replace(/\s+/g, ' ');
 
@@ -79,5 +84,27 @@ describe('reservation booking reference migration', () => {
     expect(bookingReferenceMigration).toContain('create unique index reservations_booking_reference_key');
     expect(bookingReferenceMigration).toContain("'3DH-' || to_char(current_date, 'YYYYMMDD')");
     expect(bookingReferenceMigration).toContain('create trigger reservations_set_booking_reference');
+  });
+});
+
+describe('check-in reservation RPC migration', () => {
+  it('keeps check-in hotel-scoped and limited to authorised operations roles', () => {
+    expect(checkInMigration).toContain('create or replace function public.check_in_reservation(p_reservation_id uuid)');
+    expect(checkInMigration).toContain('security invoker');
+    expect(checkInMigration).toContain("v_staff_role not in ('owner', 'front_desk')");
+    expect(checkInMigration).toContain('reservations.hotel_id = v_staff_hotel_id');
+    expect(checkInMigration).toContain('rooms.hotel_id = v_staff_hotel_id');
+  });
+
+  it('locks reservation and room rows before atomically updating both states', () => {
+    expect(checkInMigration).toContain('for update of reservations, rooms');
+    expect(checkInMigration).toContain("set status = 'checked_in'");
+    expect(checkInMigration).toContain("set status = 'occupied'");
+  });
+
+  it('rejects ineligible reservations and blocked operational room states', () => {
+    expect(checkInMigration).toContain("v_reservation.status not in ('confirmed', 'reserved')");
+    expect(checkInMigration).toContain("v_reservation.room_status in ('maintenance', 'blocked')");
+    expect(checkInMigration).toContain('grant execute on function public.check_in_reservation(uuid) to authenticated');
   });
 });

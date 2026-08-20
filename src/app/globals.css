@@ -488,3 +488,48 @@ h2 {
     flex-direction: column;
   }
 }
+
+.dashboard-alert {
+  max-width: 1280px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.dashboard-alert--success {
+  border: 1px solid #b9dec5;
+  color: #0f5132;
+  background: #eef8f0;
+}
+
+.dashboard-alert--error {
+  border: 1px solid #e2b9a9;
+  color: #8a3a1f;
+  background: #fff4ef;
+}
+
+.reservation-row {
+  align-items: flex-start;
+}
+
+.reservation-row__actions {
+  align-items: end;
+}
+
+.reservation-warning {
+  color: #8a5b13;
+}
+
+.secondary-inline-action {
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  color: #0f5132;
+  background: #e4efe7;
+  font-weight: 800;
+}

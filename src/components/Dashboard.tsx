@@ -1,13 +1,24 @@
-import Link from 'next/link';
-import { BedDouble, CalendarCheck, ClipboardCheck, DoorOpen, LogOut, Plus, WalletCards } from 'lucide-react';
+﻿import Link from 'next/link';
+import { BedDouble, CalendarCheck, CheckCircle2, ClipboardCheck, DoorOpen, LogOut, Plus, WalletCards } from 'lucide-react';
 import { StatCard } from './StatCard';
-import type { DashboardData, HousekeepingStatus, ReservationStatus, RoomStatus } from '../lib/types';
+import type { DashboardData, HousekeepingStatus, Reservation, ReservationStatus, RoomStatus } from '../lib/types';
 import { formatCurrency, getDashboardStats } from '../lib/dashboardMetrics';
+
+interface CheckInResultMessage {
+  message: string;
+  reference: string;
+  guest: string;
+  room: string;
+  early: boolean;
+}
 
 interface DashboardProps {
   data: DashboardData;
   staffName: string;
   logoutAction: () => Promise<void>;
+  checkInAction: (formData: FormData) => Promise<void>;
+  checkInError?: string;
+  checkInResult?: CheckInResultMessage;
 }
 
 const roomStatusLabels: Record<RoomStatus, string> = {
@@ -36,8 +47,17 @@ const housekeepingStatusLabels: Record<HousekeepingStatus, string> = {
   verified: 'Verified'
 };
 
-export function Dashboard({ data, staffName, logoutAction }: DashboardProps) {
+function isCheckInEligible(reservation: Reservation): boolean {
+  return reservation.status === 'confirmed' || reservation.status === 'reserved';
+}
+
+function isEarlyCheckIn(reservation: Reservation): boolean {
+  return reservation.checkIn > new Date().toISOString().slice(0, 10);
+}
+
+export function Dashboard({ data, staffName, logoutAction, checkInAction, checkInError = '', checkInResult }: DashboardProps) {
   const stats = getDashboardStats(data);
+  const hasCheckInResult = Boolean(checkInResult?.message);
 
   return (
     <main className="app-shell">
@@ -58,12 +78,24 @@ export function Dashboard({ data, staffName, logoutAction }: DashboardProps) {
         </div>
       </header>
 
+      {checkInError ? <p className="dashboard-alert dashboard-alert--error">{checkInError}</p> : null}
+      {hasCheckInResult ? (
+        <div className="dashboard-alert dashboard-alert--success">
+          <CheckCircle2 size={18} />
+          <span>
+            {checkInResult?.reference ? `${checkInResult.reference} - ` : ''}{checkInResult?.message}
+            {checkInResult?.guest ? ` ${checkInResult.guest}` : ''}{checkInResult?.room ? ` is now in Room ${checkInResult.room}.` : ''}
+            {checkInResult?.early ? ' Early check-in warning: reservation dates were not changed.' : ''}
+          </span>
+        </div>
+      ) : null}
+
       <section className="stats-grid" aria-label="Hotel performance">
         <StatCard label="Occupancy" value={`${stats.occupancyRate}%`} detail={`${stats.availableRooms} rooms available`} icon={BedDouble} />
         <StatCard label="Arrivals" value={String(stats.arrivals)} detail="Expected today" icon={CalendarCheck} />
         <StatCard label="Departures" value={String(stats.departures)} detail="Expected today" icon={DoorOpen} />
         <StatCard label="Housekeeping" value={String(stats.openHousekeeping)} detail="Open room tasks" icon={ClipboardCheck} />
-        <StatCard label="Room revenue" value={formatCurrency(stats.expectedRoomRevenue)} detail="Active nightly value" icon={WalletCards} />
+        <StatCard label="Room revenue" value={formatCurrency(stats.expectedRoomRevenue)} detail="Active stay value" icon={WalletCards} />
       </section>
 
       <section className="workspace-grid">
@@ -95,14 +127,24 @@ export function Dashboard({ data, staffName, logoutAction }: DashboardProps) {
           {data.reservations.length > 0 ? (
             <div className="list-stack">
               {data.reservations.map((reservation) => (
-                <article className="list-row" key={reservation.id}>
+                <article className="list-row reservation-row" key={reservation.id}>
                   <div>
-                    <strong>{reservation.bookingReference ?? reservation.guestName}</strong>
+                    <strong>{reservation.bookingReference ?? 'Pending reference'}</strong>
                     <span>{reservation.guestName} - Room {reservation.roomNumber}</span>
+                    <span>{reservation.checkIn} to {reservation.checkOut}</span>
+                    <span>{formatCurrency(reservation.totalStayValue)} total - {formatCurrency(reservation.nightlyRate)}/night</span>
+                    {isCheckInEligible(reservation) && isEarlyCheckIn(reservation) ? (
+                      <small className="reservation-warning">Early check-in: scheduled for {reservation.checkIn}</small>
+                    ) : null}
                   </div>
-                  <div className="list-row__meta">
+                  <div className="list-row__meta reservation-row__actions">
                     <small>{reservationStatusLabels[reservation.status]}</small>
-                    <span>{formatCurrency(reservation.balance)}</span>
+                    {isCheckInEligible(reservation) ? (
+                      <form action={checkInAction}>
+                        <input type="hidden" name="reservationId" value={reservation.id} />
+                        <button className="secondary-inline-action" type="submit">Check In</button>
+                      </form>
+                    ) : null}
                   </div>
                 </article>
               ))}

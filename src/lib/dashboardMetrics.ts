@@ -1,4 +1,4 @@
-import type { DashboardData, Reservation, Room } from './types';
+﻿import type { DashboardData, Reservation, Room } from './types';
 
 const activeReservationStatuses = new Set(['reserved', 'confirmed', 'checked_in']);
 const departureReservationStatuses = new Set(['checked_in', 'checked_out']);
@@ -9,6 +9,16 @@ export function formatCurrency(amount: number): string {
     currency: 'NGN',
     maximumFractionDigits: 0
   }).format(amount);
+}
+
+export function getStayNights(checkIn: string, checkOut: string): number {
+  const start = new Date(`${checkIn}T00:00:00Z`);
+  const end = new Date(`${checkOut}T00:00:00Z`);
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000));
+}
+
+export function getReservationStayValue(reservation: Pick<Reservation, 'checkIn' | 'checkOut' | 'nightlyRate'>): number {
+  return getStayNights(reservation.checkIn, reservation.checkOut) * reservation.nightlyRate;
 }
 
 export function getOccupancyRate(rooms: Room[]): number {
@@ -23,7 +33,7 @@ export function getOccupancyRate(rooms: Room[]): number {
 export function getExpectedRoomRevenue(reservations: Reservation[]): number {
   return reservations
     .filter((reservation) => activeReservationStatuses.has(reservation.status))
-    .reduce((total, reservation) => total + reservation.nightlyRate, 0);
+    .reduce((total, reservation) => total + reservation.totalStayValue, 0);
 }
 
 export function getDashboardStats(data: DashboardData, operatingDate = new Date().toISOString().slice(0, 10)) {

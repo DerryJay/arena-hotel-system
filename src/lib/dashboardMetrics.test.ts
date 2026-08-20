@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { getDashboardStats, getExpectedRoomRevenue, getOccupancyRate } from './dashboardMetrics';
+﻿import { describe, expect, it } from 'vitest';
+import { getDashboardStats, getExpectedRoomRevenue, getOccupancyRate, getReservationStayValue } from './dashboardMetrics';
 import type { DashboardData } from './types';
 
 const dashboardData: DashboardData = {
@@ -16,22 +16,26 @@ const dashboardData: DashboardData = {
   reservations: [
     {
       id: 'res-1',
+      bookingReference: '3DH-20260820-D44C',
       roomNumber: '101',
       guestName: 'Guest One',
       status: 'checked_in',
       checkIn: '2026-09-09',
       checkOut: '2026-09-10',
       nightlyRate: 25000,
+      totalStayValue: 25000,
       balance: 0
     },
     {
       id: 'res-2',
+      bookingReference: '3DH-20260820-A123',
       roomNumber: '201',
       guestName: 'Guest Two',
       status: 'reserved',
       checkIn: '2026-09-10',
       checkOut: '2026-09-12',
       nightlyRate: 35000,
+      totalStayValue: 70000,
       balance: 70000
     },
     {
@@ -42,6 +46,7 @@ const dashboardData: DashboardData = {
       checkIn: '2026-09-10',
       checkOut: '2026-09-11',
       nightlyRate: 25000,
+      totalStayValue: 25000,
       balance: 0
     }
   ],
@@ -56,8 +61,12 @@ describe('dashboard metrics', () => {
     expect(getOccupancyRate(dashboardData.rooms)).toBe(67);
   });
 
-  it('totals expected active nightly revenue from live reservation statuses', () => {
-    expect(getExpectedRoomRevenue(dashboardData.reservations)).toBe(60000);
+  it('calculates reservation stay value from dates and nightly rate', () => {
+    expect(getReservationStayValue({ checkIn: '2026-09-10', checkOut: '2026-09-13', nightlyRate: 25000 })).toBe(75000);
+  });
+
+  it('totals expected active stay value from live reservation statuses', () => {
+    expect(getExpectedRoomRevenue(dashboardData.reservations)).toBe(95000);
   });
 
   it('summarizes the core hotel dashboard for the operating date', () => {
@@ -67,7 +76,7 @@ describe('dashboard metrics', () => {
       arrivals: 1,
       departures: 1,
       openHousekeeping: 1,
-      expectedRoomRevenue: 60000
+      expectedRoomRevenue: 95000
     });
   });
 
