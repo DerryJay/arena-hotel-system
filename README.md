@@ -1,16 +1,17 @@
 # Arena Hotel System
 
-Version 1 establishes the application foundation for Arena Hotel:
+Version 1 establishes the application foundation for 3dHotels:
 
 - Next.js App Router, React and TypeScript frontend
-- Supabase authentication client using public anon credentials only
+- Supabase Auth login for the hotel owner
+- Server-side dashboard access checks against `public.staff_profiles`
 - Version-controlled Supabase database migrations
 - Core hotel operations dashboard for occupancy, arrivals, departures, rooms and housekeeping
 - Database-level double-booking prevention for inventory-holding reservations
 
 ## Architecture Decision
 
-The project now uses Next.js instead of the initial Vite scaffold because the planned integrations need secure server-side execution:
+The project uses Next.js because the planned integrations need secure server-side execution:
 
 - Paystack transaction initialization and verification with secret keys
 - Paystack webhooks
@@ -28,11 +29,15 @@ Copy `.env.example` to `.env.local` and set:
 
 Later server-only integrations will also need values such as `PAYSTACK_SECRET_KEY`, `PAYSTACK_WEBHOOK_SECRET`, `META_WHATSAPP_VERIFY_TOKEN`, `META_WHATSAPP_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY`. Keep real values out of Git.
 
+## First Owner Setup
+
+Do not create fake auth users in migrations. Create the real owner user in Supabase Auth, then link that user's UUID to `3dHotels` with the one-time SQL command in `docs/first-owner-setup.md`.
+
 ## Supabase Migrations
 
 Database changes live in `supabase/migrations`.
 
-Do not deploy the Version 1 migration until it has been reviewed. When ready, apply it with the Supabase CLI from this repository after logging in and linking the project:
+Do not deploy migrations until they have been reviewed. When ready, apply them with the Supabase CLI from this repository after logging in and linking the project:
 
 ```bash
 supabase db push
@@ -44,6 +49,8 @@ supabase db push
 npm install
 npm run dev
 ```
+
+Open `/login` to sign in. Authenticated active owners are routed to `/dashboard`.
 
 ## Verification
 

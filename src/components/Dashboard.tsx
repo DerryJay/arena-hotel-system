@@ -6,7 +6,8 @@ import { formatCurrency, getDashboardStats } from '../lib/dashboardMetrics';
 interface DashboardProps {
   data: DashboardData;
   isDemo: boolean;
-  onSignOut: () => void;
+  staffName: string;
+  logoutAction: () => Promise<void>;
 }
 
 const roomStatusLabels: Record<RoomStatus, string> = {
@@ -35,24 +36,26 @@ const housekeepingStatusLabels: Record<HousekeepingStatus, string> = {
   verified: 'Verified'
 };
 
-export function Dashboard({ data, isDemo, onSignOut }: DashboardProps) {
+export function Dashboard({ data, isDemo, staffName, logoutAction }: DashboardProps) {
   const stats = getDashboardStats(data);
 
   return (
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <p>{isDemo ? 'Preview workspace' : 'Live workspace'}</p>
+          <p>{isDemo ? 'Preview workspace' : `Signed in as ${staffName}`}</p>
           <h1>{data.hotel.name}</h1>
         </div>
-        <button className="icon-button" type="button" onClick={onSignOut} aria-label="Sign out" title="Sign out">
-          <LogOut size={18} />
-        </button>
+        <form action={logoutAction}>
+          <button className="icon-button" type="submit" aria-label="Sign out" title="Sign out">
+            <LogOut size={18} />
+          </button>
+        </form>
       </header>
 
       <section className="stats-grid" aria-label="Hotel performance">
         <StatCard label="Occupancy" value={`${stats.occupancyRate}%`} detail={`${stats.availableRooms} rooms available`} icon={BedDouble} />
-        <StatCard label="Arrivals" value={String(stats.arrivals)} detail="Confirmed for today" icon={CalendarCheck} />
+        <StatCard label="Arrivals" value={String(stats.arrivals)} detail="Reserved for today" icon={CalendarCheck} />
         <StatCard label="Departures" value={String(stats.departures)} detail="Checked out today" icon={DoorOpen} />
         <StatCard label="Housekeeping" value={String(stats.openHousekeeping)} detail="Open room tasks" icon={ClipboardCheck} />
         <StatCard label="Room revenue" value={formatCurrency(stats.expectedRoomRevenue)} detail="Active nightly value" icon={WalletCards} />
