@@ -1,0 +1,42 @@
+import type { DashboardData, Reservation, Room } from './types';
+
+const activeReservationStatuses = new Set(['confirmed', 'checked_in']);
+
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0
+  }).format(amount);
+}
+
+export function getOccupancyRate(rooms: Room[]): number {
+  if (rooms.length === 0) {
+    return 0;
+  }
+
+  const occupiedRooms = rooms.filter((room) => room.status === 'occupied').length;
+  return Math.round((occupiedRooms / rooms.length) * 100);
+}
+
+export function getExpectedRoomRevenue(reservations: Reservation[]): number {
+  return reservations
+    .filter((reservation) => activeReservationStatuses.has(reservation.status))
+    .reduce((total, reservation) => total + reservation.nightlyRate, 0);
+}
+
+export function getDashboardStats(data: DashboardData) {
+  const arrivals = data.reservations.filter((reservation) => reservation.status === 'confirmed').length;
+  const departures = data.reservations.filter((reservation) => reservation.status === 'checked_out').length;
+  const openHousekeeping = data.housekeeping.filter((task) => task.status !== 'verified').length;
+
+  return {
+    occupancyRate: getOccupancyRate(data.rooms),
+    availableRooms: data.rooms.filter((room) => room.status === 'available').length,
+    arrivals,
+    departures,
+    openHousekeeping,
+    expectedRoomRevenue: getExpectedRoomRevenue(data.reservations)
+  };
+}
+
