@@ -42,6 +42,11 @@ const paymentOverpaymentMigration = readFileSync(
   'utf8'
 ).replace(/\s+/g, ' ');
 
+const checkoutMigration = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260821001000_add_checkout_reservation_rpc.sql'),
+  'utf8'
+).replace(/\s+/g, ' ');
+
 describe('initial hotel schema migration', () => {
   it('keeps RLS enabled on tenant-scoped tables', () => {
     for (const table of ['hotels', 'staff_profiles', 'room_types', 'rooms', 'guests', 'reservations', 'housekeeping_tasks', 'folio_charges', 'payments']) {
@@ -181,5 +186,37 @@ describe('reservation payment overpayment prevention migration', () => {
     expect(paymentOverpaymentMigration).toContain("payments.status in ('paid', 'partially_paid')");
     expect(paymentOverpaymentMigration).toContain('if p_amount > v_balance then');
     expect(paymentOverpaymentMigration).toContain('Payment amount cannot exceed the outstanding balance.');
+  });
+});
+
+describe('checkout reservation RPC migration', () => {
+  it('adds checkout audit balance and authorised hotel-scoped checkout RPC', () => {
+    expect(checkoutMigration).toContain('add column if not exists checkout_balance_due numeric');
+    expect(checkoutMigration).toContain('create or replace function public.checkout_reservation(');
+    expect(checkoutMigration).toContain('security invoker');
+    expect(checkoutMigration).toContain("v_staff_role not in ('owner', 'front_desk')");
+    expect(checkoutMigration).toContain('reservations.hotel_id = v_staff_hotel_id');
+    expect(checkoutMigration).toContain('rooms.hotel_id = v_staff_hotel_id');
+  });
+
+  it('locks reservation and room rows, rejects non-checked-in reservations, and requires balance confirmation', () => {
+    expect(checkoutMigration).toContain('for update of reservations, rooms');
+    expect(checkoutMigration).toContain("v_reservation.status <> 'checked_in'");
+    expect(checkoutMigration).toContain('v_balance > 0 and not p_confirm_balance_due');
+    expect(checkoutMigration).toContain('Outstanding balance requires confirmation before checkout.');
+  });
+
+  it('checks out reservation, moves room to cleaning, and creates one checkout cleaning task', () => {
+    expect(checkoutMigration).toContain("status = 'checked_out'");
+    expect(checkoutMigration).toContain("set status = 'cleaning'");
+    expect(checkoutMigration).toContain("housekeeping_tasks.status in ('todo', 'in_progress')");
+    expect(checkoutMigration).toContain('Created from checkout for');
+    expect(checkoutMigration).toContain('insert into public.housekeeping_tasks');
+  });
+
+  it('keeps payment overpayment protection aligned to folio-inclusive balances', () => {
+    expect(checkoutMigration).toContain('create or replace function public.record_reservation_payment(');
+    expect(checkoutMigration).toContain('v_stay_value + v_folio_total - v_amount_paid');
+    expect(checkoutMigration).toContain('Payment amount cannot exceed the outstanding balance.');
   });
 });

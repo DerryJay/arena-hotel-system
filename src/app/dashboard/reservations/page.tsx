@@ -7,6 +7,7 @@ import { DashboardLoadError } from '../../../components/DashboardLoadError';
 import { ReservationsManagement } from '../../../components/ReservationsManagement';
 import { logoutAction } from '../../../lib/auth/actions';
 import { checkInReservationAction } from '../../../lib/auth/checkInActions';
+import { checkoutReservationAction } from '../../../lib/auth/checkoutActions';
 import { recordReservationPaymentAction } from '../../../lib/auth/reservationActions';
 import { getDashboardAccess } from '../../../lib/auth/serverAccess';
 import { getReservationsManagementData } from '../../../lib/reservations';
@@ -64,6 +65,9 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
           checkInAction={checkInReservationAction}
           checkInError={getParam(params, 'checkInError')}
           checkInSuccess={getParam(params, 'checkInSuccess')}
+          checkoutAction={checkoutReservationAction}
+          checkoutError={getParam(params, 'checkoutError')}
+          checkoutSuccess={getParam(params, 'checkoutSuccess')}
           paymentAction={recordReservationPaymentAction}
           paymentError={getParam(params, 'paymentError')}
           paymentKey={randomUUID()}
@@ -79,3 +83,4 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
     return <DashboardLoadError message="Unable to load reservations." logoutAction={logoutAction} />;
   }
 }
+

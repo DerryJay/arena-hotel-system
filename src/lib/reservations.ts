@@ -19,6 +19,8 @@ export interface ReservationListItem {
   nights: number;
   nightlyRate: number;
   stayValue: number;
+  folioCharges: number;
+  totalCharges: number;
   amountPaid: number;
   balance: number;
   reservationStatus: ReservationStatus;
@@ -108,6 +110,11 @@ type PaymentRow = {
   posted_at: string;
 };
 
+type FolioChargeRow = {
+  reservation_id: string;
+  amount: number | string;
+};
+
 type RecordPaymentRpcRow = {
   ok: boolean;
   message: string;
@@ -130,6 +137,10 @@ function toNumber(value: number | string | null | undefined): number {
   return 0;
 }
 
+function sumFolioCharges(rows: FolioChargeRow[]): number {
+  return rows.reduce((total, row) => total + toNumber(row.amount), 0);
+}
+
 export function isAuthorizedPaymentRecorder(role: string): boolean {
   return paymentWriterRoles.has(role);
 }
@@ -139,12 +150,12 @@ export function normalizePaymentMethod(method: string): ReservationPaymentMethod
   return validPaymentMethods.has(normalized as ReservationPaymentMethod) ? normalized as ReservationPaymentMethod : null;
 }
 
-export function getReservationPaymentStatus(stayValue: number, amountPaid: number): ReservationPaymentStatus {
+export function getReservationPaymentStatus(stayValue: number, amountPaid: number, totalCharges = stayValue): ReservationPaymentStatus {
   if (amountPaid <= 0) {
     return 'unpaid';
   }
 
-  if (amountPaid < stayValue) {
+  if (amountPaid < totalCharges) {
     return 'part_paid';
   }
 
@@ -207,10 +218,12 @@ export function validatePaymentSafety(state: PaymentSafetyState): { ok: true } |
   return { ok: true };
 }
 
-function mapReservation(row: ReservationRow, payments: PaymentRow[]): ReservationListItem {
+function mapReservation(row: ReservationRow, payments: PaymentRow[], folioCharges: FolioChargeRow[]): ReservationListItem {
   const nightlyRate = toNumber(row.nightly_rate);
   const nights = getStayNights(row.check_in, row.check_out);
   const stayValue = nights * nightlyRate;
+  const folioTotal = sumFolioCharges(folioCharges);
+  const totalCharges = stayValue + folioTotal;
   const amountPaid = getValidPaymentTotal(payments);
 
   return {
@@ -226,10 +239,12 @@ function mapReservation(row: ReservationRow, payments: PaymentRow[]): Reservatio
     nights,
     nightlyRate,
     stayValue,
+    folioCharges: folioTotal,
+    totalCharges,
     amountPaid,
-    balance: Math.max(0, stayValue - amountPaid),
+    balance: Math.max(0, totalCharges - amountPaid),
     reservationStatus: row.status,
-    paymentStatus: getReservationPaymentStatus(stayValue, amountPaid),
+    paymentStatus: getReservationPaymentStatus(stayValue, amountPaid, totalCharges),
     adults: row.adults ?? 1,
     children: row.children ?? 0,
     source: row.source ?? 'front_desk',
@@ -257,7 +272,7 @@ export async function getReservationsManagementData(
     throw new Error('Authenticated staff profile is missing a hotel id.');
   }
 
-  const [reservationsResponse, paymentsResponse] = await Promise.all([
+  const [reservationsResponse, paymentsResponse, folioResponse] = await Promise.all([
     supabase
       .from('reservations')
       .select('id, booking_reference, status, check_in, check_out, adults, children, nightly_rate, source, created_at, guests(full_name, phone, email), rooms(room_number, room_types(name))')
@@ -267,7 +282,11 @@ export async function getReservationsManagementData(
       .from('payments')
       .select('id, reservation_id, amount, method, reference, notes, status, posted_at')
       .eq('hotel_id', access.hotel_id)
-      .order('posted_at', { ascending: false })
+      .order('posted_at', { ascending: false }),
+    supabase
+      .from('folio_charges')
+      .select('reservation_id, amount')
+      .eq('hotel_id', access.hotel_id)
   ]);
 
   if (reservationsResponse.error) {
@@ -278,6 +297,10 @@ export async function getReservationsManagementData(
     throw new Error(`Unable to load payments: ${paymentsResponse.error.message}`);
   }
 
+  if (folioResponse.error) {
+    throw new Error(`Unable to load folio charges: ${folioResponse.error.message}`);
+  }
+
   const payments = (paymentsResponse.data ?? []) as unknown as PaymentRow[];
   const paymentsByReservation = payments.reduce((grouped, payment) => {
     const existing = grouped.get(payment.reservation_id) ?? [];
@@ -285,9 +308,20 @@ export async function getReservationsManagementData(
     grouped.set(payment.reservation_id, existing);
     return grouped;
   }, new Map<string, PaymentRow[]>());
+  const folioCharges = (folioResponse.data ?? []) as unknown as FolioChargeRow[];
+  const folioByReservation = folioCharges.reduce((grouped, charge) => {
+    const existing = grouped.get(charge.reservation_id) ?? [];
+    existing.push(charge);
+    grouped.set(charge.reservation_id, existing);
+    return grouped;
+  }, new Map<string, FolioChargeRow[]>());
 
   const allReservations = ((reservationsResponse.data ?? []) as unknown as ReservationRow[])
-    .map((reservation) => mapReservation(reservation, paymentsByReservation.get(reservation.id) ?? []));
+    .map((reservation) => mapReservation(
+      reservation,
+      paymentsByReservation.get(reservation.id) ?? [],
+      folioByReservation.get(reservation.id) ?? []
+    ));
 
   const filteredReservations = allReservations
     .filter((reservation) => !filters.status || reservation.reservationStatus === filters.status)

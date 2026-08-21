@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Banknote, CheckCircle2, ClipboardCheck, CreditCard, Search } from 'lucide-react';
+import { AlertTriangle, Banknote, CheckCircle2, ClipboardCheck, CreditCard, DoorClosed, Search } from 'lucide-react';
 import { formatCurrency } from '../lib/dashboardMetrics';
 import type { ReservationDetails, ReservationListItem, ReservationPaymentStatus } from '../lib/reservations';
 import type { ReservationStatus } from '../lib/types';
@@ -8,6 +8,9 @@ interface ReservationsManagementProps {
   checkInAction: (formData: FormData) => Promise<void>;
   checkInError: string;
   checkInSuccess: string;
+  checkoutAction: (formData: FormData) => Promise<void>;
+  checkoutError: string;
+  checkoutSuccess: string;
   paymentAction: (formData: FormData) => Promise<void>;
   paymentError: string;
   paymentKey: string;
@@ -44,6 +47,10 @@ function isCheckInEligible(reservation: ReservationListItem): boolean {
   return reservation.reservationStatus === 'confirmed' || reservation.reservationStatus === 'reserved';
 }
 
+function isCheckoutEligible(reservation: ReservationListItem): boolean {
+  return reservation.reservationStatus === 'checked_in';
+}
+
 function reservationDetailPath(reservationId: string): string {
   return `/dashboard/reservations?reservation=${encodeURIComponent(reservationId)}`;
 }
@@ -64,15 +71,15 @@ function PaymentHistory({ reservation }: { reservation: ReservationDetails }) {
   return (
     <div className="payment-list">
       {reservation.payments.map((payment) => (
-        <div className="payment-row" key={payment.id}>
-          <div>
+        <article className="payment-row" key={payment.id}>
+          <div className="payment-row__main">
             <strong>{formatCurrency(payment.amount)}</strong>
             <span>{paymentMethodLabels[payment.method] ?? payment.method}</span>
-            {payment.reference ? <small>{payment.reference}</small> : null}
-            {payment.notes ? <small>{payment.notes}</small> : null}
+            {payment.reference ? <small>Reference: {payment.reference}</small> : null}
+            {payment.notes ? <small>Note: {payment.notes}</small> : null}
           </div>
-          <small>{formatDateTime(payment.postedAt)}</small>
-        </div>
+          <time dateTime={payment.postedAt}>{formatDateTime(payment.postedAt)}</time>
+        </article>
       ))}
     </div>
   );
@@ -80,20 +87,23 @@ function PaymentHistory({ reservation }: { reservation: ReservationDetails }) {
 
 function ReservationDetailsPanel({
   checkInAction,
+  checkoutAction,
   paymentAction,
   paymentKey,
   reservation
 }: {
   checkInAction: (formData: FormData) => Promise<void>;
+  checkoutAction: (formData: FormData) => Promise<void>;
   paymentAction: (formData: FormData) => Promise<void>;
   paymentKey: string;
   reservation: ReservationDetails;
 }) {
   const returnTo = reservationDetailPath(reservation.id);
+  const hasBalance = reservation.balance > 0;
 
   return (
     <div className="panel reservation-detail-panel">
-      <div className="panel__header">
+      <div className="panel__header reservation-detail-header">
         <div>
           <h2>{reservation.bookingReference}</h2>
           <span>{reservation.guestName} - Room {reservation.roomNumber}</span>
@@ -136,11 +146,15 @@ function ReservationDetailsPanel({
           <strong>{formatCurrency(reservation.stayValue)}</strong>
         </div>
         <div>
+          <small>Folio charges</small>
+          <strong>{formatCurrency(reservation.folioCharges)}</strong>
+        </div>
+        <div>
           <small>Payments received</small>
           <strong>{formatCurrency(reservation.amountPaid)}</strong>
         </div>
         <div>
-          <small>Balance</small>
+          <small>Outstanding balance</small>
           <strong>{formatCurrency(reservation.balance)}</strong>
         </div>
         <div>
@@ -159,10 +173,34 @@ function ReservationDetailsPanel({
             </button>
           </form>
         ) : null}
+
+        {isCheckoutEligible(reservation) ? (
+          <form className="checkout-form" action={checkoutAction}>
+            <input type="hidden" name="reservationId" value={reservation.id} />
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <div className="checkout-summary">
+              <strong>Check out {reservation.guestName}</strong>
+              <span>{reservation.bookingReference} - Room {reservation.roomNumber}</span>
+              <span>Outstanding balance: {formatCurrency(reservation.balance)}</span>
+            </div>
+            {hasBalance ? (
+              <label className="checkout-confirmation">
+                <input type="checkbox" name="confirmBalanceDue" value="yes" required />
+                <span>I confirm checkout with an outstanding balance due.</span>
+              </label>
+            ) : null}
+            {hasBalance ? (
+              <p className="checkout-warning"><AlertTriangle size={16} /> This checkout will record an unpaid balance.</p>
+            ) : null}
+            <button className="secondary-inline-action" type="submit">
+              <DoorClosed size={16} /> Check Out
+            </button>
+          </form>
+        ) : null}
       </div>
 
       <div className="payment-workspace">
-        <section>
+        <section className="payment-history-section">
           <h3>Payments Already Received</h3>
           <PaymentHistory reservation={reservation} />
         </section>
@@ -206,6 +244,9 @@ export function ReservationsManagement({
   checkInAction,
   checkInError,
   checkInSuccess,
+  checkoutAction,
+  checkoutError,
+  checkoutSuccess,
   paymentAction,
   paymentError,
   paymentKey,
@@ -221,6 +262,8 @@ export function ReservationsManagement({
       {paymentSuccess ? <p className="dashboard-alert dashboard-alert--success"><CheckCircle2 size={18} /> {paymentSuccess}</p> : null}
       {checkInError ? <p className="dashboard-alert dashboard-alert--error">{checkInError}</p> : null}
       {checkInSuccess ? <p className="dashboard-alert dashboard-alert--success"><CheckCircle2 size={18} /> {checkInSuccess}</p> : null}
+      {checkoutError ? <p className="dashboard-alert dashboard-alert--error">{checkoutError}</p> : null}
+      {checkoutSuccess ? <p className="dashboard-alert dashboard-alert--success"><CheckCircle2 size={18} /> {checkoutSuccess}</p> : null}
 
       <form className="panel reservation-filter" method="get" action="/dashboard/reservations">
         <div className="panel__header">
@@ -298,6 +341,7 @@ export function ReservationsManagement({
         {selectedReservation ? (
           <ReservationDetailsPanel
             checkInAction={checkInAction}
+            checkoutAction={checkoutAction}
             paymentAction={paymentAction}
             paymentKey={paymentKey}
             reservation={selectedReservation}
