@@ -1,4 +1,4 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { Banknote, CheckCircle2, ClipboardCheck, CreditCard, Search } from 'lucide-react';
 import { formatCurrency } from '../lib/dashboardMetrics';
 import type { ReservationDetails, ReservationListItem, ReservationPaymentStatus } from '../lib/reservations';
@@ -171,9 +171,10 @@ function ReservationDetailsPanel({
           <h3>Record Payment</h3>
           <input type="hidden" name="reservationId" value={reservation.id} />
           <input type="hidden" name="paymentKey" value={paymentKey} />
+          <input type="hidden" name="outstandingBalance" value={reservation.balance} />
           <label>
             Amount received
-            <input name="amount" type="number" min="1" step="100" required />
+            <input name="amount" type="number" min="1" max={Math.max(1, reservation.balance)} step="1" required disabled={reservation.balance <= 0} />
           </label>
           <label>
             Payment method
@@ -191,7 +192,8 @@ function ReservationDetailsPanel({
             Note optional
             <textarea name="notes" rows={3} />
           </label>
-          <button type="submit">
+          {reservation.balance <= 0 ? <p className="form-message">This reservation is fully paid.</p> : null}
+          <button type="submit" disabled={reservation.balance <= 0}>
             <Banknote size={18} /> Record Payment
           </button>
         </form>

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+﻿import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -34,6 +34,11 @@ const roomManagementMigration = readFileSync(
 
 const paymentRecordingMigration = readFileSync(
   join(process.cwd(), 'supabase', 'migrations', '20260821000800_add_reservation_payment_recording_rpc.sql'),
+  'utf8'
+).replace(/\s+/g, ' ');
+
+const paymentOverpaymentMigration = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260821000900_prevent_reservation_payment_overpayments.sql'),
   'utf8'
 ).replace(/\s+/g, ' ');
 
@@ -166,5 +171,15 @@ describe('reservation payment recording RPC migration', () => {
     expect(paymentRecordingMigration).toContain('Payment amount must be greater than zero.');
     expect(paymentRecordingMigration).toContain('Payment already recorded.');
     expect(paymentRecordingMigration).toContain('grant execute on function public.record_reservation_payment');
+  });
+});
+
+describe('reservation payment overpayment prevention migration', () => {
+  it('replaces the payment RPC with outstanding balance enforcement', () => {
+    expect(paymentOverpaymentMigration).toContain('create or replace function public.record_reservation_payment(');
+    expect(paymentOverpaymentMigration).toContain('v_stay_value := greatest(0, v_reservation.check_out - v_reservation.check_in) * v_reservation.nightly_rate');
+    expect(paymentOverpaymentMigration).toContain("payments.status in ('paid', 'partially_paid')");
+    expect(paymentOverpaymentMigration).toContain('if p_amount > v_balance then');
+    expect(paymentOverpaymentMigration).toContain('Payment amount cannot exceed the outstanding balance.');
   });
 });

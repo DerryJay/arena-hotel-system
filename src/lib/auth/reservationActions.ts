@@ -1,4 +1,4 @@
-﻿'use server';
+'use server';
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -40,7 +40,8 @@ export async function recordReservationPaymentAction(formData: FormData) {
     method: String(formData.get('method') ?? ''),
     reference: String(formData.get('reference') ?? ''),
     notes: String(formData.get('notes') ?? ''),
-    idempotencyKey: String(formData.get('paymentKey') ?? '')
+    idempotencyKey: String(formData.get('paymentKey') ?? ''),
+    outstandingBalance: Number(formData.get('outstandingBalance') ?? Number.POSITIVE_INFINITY)
   });
 
   if (!result.ok) {

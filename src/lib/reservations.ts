@@ -1,4 +1,4 @@
-﻿import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { StaffHotelAccessRecord } from './auth/access';
 import { getStayNights } from './dashboardMetrics';
 import type { PaymentStatus, ReservationStatus } from './types';
@@ -55,6 +55,7 @@ export interface RecordPaymentInput {
   reference?: string;
   notes?: string;
   idempotencyKey: string;
+  outstandingBalance?: number;
 }
 
 export interface RecordPaymentResult {
@@ -69,6 +70,7 @@ export interface PaymentSafetyState {
   reservationHotelId: string;
   amount: number;
   idempotencyKey: string;
+  outstandingBalance: number;
 }
 
 type ReservationRow = {
@@ -164,6 +166,10 @@ export function validatePaymentInput(input: RecordPaymentInput): { ok: true; met
     return { ok: false, message: 'Payment amount must be greater than zero.' };
   }
 
+  if (input.outstandingBalance !== undefined && input.amount > input.outstandingBalance) {
+    return { ok: false, message: 'Payment amount cannot exceed the outstanding balance.' };
+  }
+
   const method = normalizePaymentMethod(input.method);
 
   if (!method) {
@@ -188,6 +194,10 @@ export function validatePaymentSafety(state: PaymentSafetyState): { ok: true } |
 
   if (!Number.isFinite(state.amount) || state.amount <= 0) {
     return { ok: false, message: 'Payment amount must be greater than zero.' };
+  }
+
+  if (state.amount > state.outstandingBalance) {
+    return { ok: false, message: 'Payment amount cannot exceed the outstanding balance.' };
   }
 
   if (!state.idempotencyKey.trim()) {
