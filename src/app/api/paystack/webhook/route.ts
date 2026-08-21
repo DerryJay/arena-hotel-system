@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '../../../../lib/supabase/admin';
 import { fulfillVerifiedPaystackPayment, verifyPaystackTransaction, verifyPaystackWebhookSignature } from '../../../../lib/paystack';
+import { maybeSendWhatsAppPaymentConfirmation } from '../../../../lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,5 +45,10 @@ export async function POST(request: Request) {
   }
 
   const result = await fulfillVerifiedPaystackPayment(adminSupabase, verification.data, true);
+
+  if (result.ok && result.message === 'Paystack payment recorded.') {
+    await maybeSendWhatsAppPaymentConfirmation(adminSupabase, result.paymentId);
+  }
+
   return NextResponse.json(result, { status: result.ok ? 200 : 400 });
 }

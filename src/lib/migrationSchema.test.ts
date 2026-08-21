@@ -57,6 +57,11 @@ const paystackWebhookGrantsMigration = readFileSync(
   'utf8'
 ).replace(/\s+/g, ' ');
 
+const whatsappBookingMigration = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260821001300_add_whatsapp_booking_sessions.sql'),
+  'utf8'
+).replace(/\s+/g, ' ');
+
 describe('initial hotel schema migration', () => {
   it('keeps RLS enabled on tenant-scoped tables', () => {
     for (const table of ['hotels', 'staff_profiles', 'room_types', 'rooms', 'guests', 'reservations', 'housekeeping_tasks', 'folio_charges', 'payments']) {
@@ -261,5 +266,27 @@ describe('Paystack webhook service-role grants migration', () => {
     expect(paystackWebhookGrantsMigration).not.toContain('to anon');
     expect(paystackWebhookGrantsMigration).not.toContain('to authenticated');
     expect(paystackWebhookGrantsMigration).not.toContain('grant insert on table public.payments to service_role');
+  });
+});
+
+
+describe('WhatsApp booking sessions migration', () => {
+  it('creates session and processed-message tables with RLS enabled', () => {
+    expect(whatsappBookingMigration).toContain('create table if not exists public.whatsapp_sessions');
+    expect(whatsappBookingMigration).toContain('create table if not exists public.whatsapp_processed_messages');
+    expect(whatsappBookingMigration).toContain('alter table public.whatsapp_sessions enable row level security');
+    expect(whatsappBookingMigration).toContain('alter table public.whatsapp_processed_messages enable row level security');
+    expect(whatsappBookingMigration).toContain('unique (hotel_id, wa_id)');
+    expect(whatsappBookingMigration).toContain('unique (hotel_id, message_id)');
+  });
+
+  it('uses service-role-only RPCs for trusted WhatsApp reservation and Paystack intent writes', () => {
+    expect(whatsappBookingMigration).toContain('create or replace function public.create_whatsapp_reservation(');
+    expect(whatsappBookingMigration).toContain('create or replace function public.create_whatsapp_paystack_intent(');
+    expect(whatsappBookingMigration).toContain('security definer');
+    expect(whatsappBookingMigration).toContain('grant execute on function public.create_whatsapp_reservation');
+    expect(whatsappBookingMigration).toContain('to service_role');
+    expect(whatsappBookingMigration).not.toContain('grant execute on function public.create_whatsapp_reservation(text, text, uuid, text, text, text, date, date) to anon');
+    expect(whatsappBookingMigration).not.toContain('grant select, insert, update on table public.reservations to service_role');
   });
 });

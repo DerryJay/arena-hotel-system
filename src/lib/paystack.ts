@@ -412,3 +412,86 @@ export async function fulfillVerifiedPaystackPayment(
   return { ok: true, message: 'Paystack payment recorded.', paymentId: updateResponse.data.id };
 }
 
+
+export interface TrustedPaystackPaymentInput {
+  hotelId: string;
+  reservationId: string;
+  guestId: string;
+  bookingReference: string;
+  guestEmail: string;
+  amount: number;
+  callbackUrl?: string;
+  intentRpc?: 'create_whatsapp_paystack_intent';
+}
+
+export async function initializeTrustedPaystackPayment(
+  adminSupabase: SupabaseClient,
+  input: TrustedPaystackPaymentInput
+): Promise<PaystackInitializeResult> {
+  const amountValidation = validatePaystackAmount(input.amount, input.amount);
+  if (!amountValidation.ok) return amountValidation;
+
+  const emailValidation = validatePaystackEmail(input.guestEmail);
+  if (!emailValidation.ok) return emailValidation;
+
+  const secretKey = getPaystackSecretKey();
+  if (!secretKey) {
+    return { ok: false, message: 'PAYSTACK_SECRET_KEY is not configured.' };
+  }
+
+  const reference = generatePaystackReference(input.bookingReference);
+
+  try {
+    const response = await paystackFetch<PaystackInitializeResponse>('/transaction/initialize', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: emailValidation.email,
+        amount: String(nairaToKobo(input.amount)),
+        currency,
+        reference,
+        callback_url: input.callbackUrl,
+        metadata: {
+          reservation_id: input.reservationId,
+          booking_reference: input.bookingReference,
+          hotel_id: input.hotelId,
+          guest_id: input.guestId
+        }
+      })
+    }, secretKey);
+
+    if (!response.status || !response.data?.authorization_url || !response.data.access_code || !response.data.reference) {
+      return { ok: false, message: response.message || 'Paystack did not return a payment link.' };
+    }
+
+    const intent = await adminSupabase
+      .rpc(input.intentRpc ?? 'create_whatsapp_paystack_intent', {
+        p_hotel_id: input.hotelId,
+        p_reservation_id: input.reservationId,
+        p_amount: input.amount,
+        p_reference: response.data.reference,
+        p_access_code: response.data.access_code,
+        p_authorization_url: response.data.authorization_url,
+        p_customer_email: emailValidation.email,
+        p_currency: currency
+      })
+      .single<CreatePaystackIntentRow>();
+
+    if (intent.error) {
+      return { ok: false, message: `Unable to store Paystack payment link: ${intent.error.message}` };
+    }
+
+    if (!intent.data.ok) {
+      return { ok: false, message: intent.data.message };
+    }
+
+    return {
+      ok: true,
+      message: intent.data.message,
+      authorizationUrl: response.data.authorization_url,
+      reference: response.data.reference,
+      paymentId: intent.data.payment_id ?? undefined
+    };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'Unable to initialize Paystack payment.' };
+  }
+}

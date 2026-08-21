@@ -27,7 +27,7 @@ Copy `.env.example` to `.env.local` and set:
 - `NEXT_PUBLIC_SUPABASE_URL`: your Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: your Supabase publishable key
 
-Paystack online payments require server-only `PAYSTACK_SECRET_KEY` and `SUPABASE_SECRET_KEY`. Prefer the current Supabase secret key format (`sb_secret_...`) for `SUPABASE_SECRET_KEY`; use a legacy service-role key only if the secret key is unavailable. Keep real values out of Git. WhatsApp values such as `META_WHATSAPP_VERIFY_TOKEN` and `META_WHATSAPP_ACCESS_TOKEN` are placeholders for a later integration.
+Paystack online payments require server-only `PAYSTACK_SECRET_KEY` and `SUPABASE_SECRET_KEY`. Prefer the current Supabase secret key format (`sb_secret_...`) for `SUPABASE_SECRET_KEY`; use a legacy service-role key only if the secret key is unavailable. WhatsApp Phase 1 requires server-only `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`, and `WHATSAPP_HOTEL_SLUG`. Keep real values out of Git.
 
 ## First Owner Setup
 
@@ -60,3 +60,16 @@ npm run typecheck
 npm run test
 npm run build
 ```
+
+## WhatsApp Phase 1
+
+WhatsApp Cloud API booking automation is exposed at `/api/whatsapp/webhook`. Configure these server-only values in `.env.local` or deployment secrets only:
+
+- `WHATSAPP_VERIFY_TOKEN`
+- `WHATSAPP_ACCESS_TOKEN`
+- `WHATSAPP_PHONE_NUMBER_ID`
+- `WHATSAPP_APP_SECRET`
+- `WHATSAPP_HOTEL_SLUG=3dhotels`
+- `APP_URL`
+
+Incoming POST webhooks are verified with `x-hub-signature-256`. Meta retries are idempotent through `public.whatsapp_processed_messages`. The deterministic Phase 1 flow creates reservations only after the guest replies `CONFIRM`, then sends a Paystack hosted checkout link. Payment ledger updates still depend on the signed Paystack webhook.
