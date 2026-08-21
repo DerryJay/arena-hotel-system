@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   getDashboardStats,
   getExpectedRoomRevenue,
@@ -17,6 +17,7 @@ const dashboardData: DashboardData = {
   rooms: [
     { id: '101', roomNumber: '101', floor: '1', typeName: 'Standard', status: 'occupied', nightlyRate: 25000 },
     { id: '102', roomNumber: '102', floor: '1', typeName: 'Standard', status: 'available', nightlyRate: 25000 },
+    { id: '103', roomNumber: '103', floor: '1', typeName: 'Standard', status: 'cleaning', nightlyRate: 25000 },
     { id: '201', roomNumber: '201', floor: '2', typeName: 'Deluxe', status: 'occupied', nightlyRate: 35000 }
   ],
   reservations: [
@@ -67,7 +68,7 @@ const dashboardData: DashboardData = {
 
 describe('dashboard metrics', () => {
   it('calculates occupancy from occupied rooms only', () => {
-    expect(getOccupancyRate(dashboardData.rooms)).toBe(67);
+    expect(getOccupancyRate(dashboardData.rooms)).toBe(50);
   });
 
   it('calculates reservation stay value from dates and nightly rate', () => {
@@ -81,7 +82,7 @@ describe('dashboard metrics', () => {
 
   it('summarizes the core hotel dashboard for the operating date', () => {
     expect(getDashboardStats(dashboardData, '2026-09-10')).toMatchObject({
-      occupancyRate: 67,
+      occupancyRate: 50,
       availableRooms: 1,
       arrivals: 1,
       departures: 1,
@@ -92,8 +93,10 @@ describe('dashboard metrics', () => {
     });
   });
 
-  it('shows zero stats when there are no reservations or housekeeping records', () => {
-    expect(getDashboardStats({ ...dashboardData, reservations: [], housekeeping: [] }, '2026-09-10')).toMatchObject({
+  it('shows zero stats when there are no reservations or cleaning rooms', () => {
+    const availableRooms = dashboardData.rooms.map((room) => ({ ...room, status: room.status === 'cleaning' ? 'available' as const : room.status }));
+
+    expect(getDashboardStats({ ...dashboardData, rooms: availableRooms, reservations: [], housekeeping: [] }, '2026-09-10')).toMatchObject({
       arrivals: 0,
       departures: 0,
       openHousekeeping: 0,

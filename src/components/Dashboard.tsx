@@ -1,4 +1,4 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { BedDouble, Building2, CalendarCheck, CheckCircle2, ClipboardCheck, DoorOpen, LogOut, Plus, ReceiptText, WalletCards } from 'lucide-react';
 import { StatCard } from './StatCard';
 import type { DashboardData, HousekeepingStatus, Reservation, ReservationStatus, RoomStatus } from '../lib/types';
@@ -100,7 +100,7 @@ export function Dashboard({ data, staffName, logoutAction, checkInAction, checkI
         <StatCard label="Occupancy" value={`${stats.occupancyRate}%`} detail={`${stats.availableRooms} rooms available`} icon={BedDouble} />
         <StatCard label="Arrivals" value={String(stats.arrivals)} detail="Expected today" icon={CalendarCheck} />
         <StatCard label="Departures" value={String(stats.departures)} detail="Expected today" icon={DoorOpen} />
-        <StatCard label="Housekeeping" value={String(stats.openHousekeeping)} detail="Open room tasks" icon={ClipboardCheck} />
+        <StatCard label="Housekeeping" value={String(stats.openHousekeeping)} detail="Rooms cleaning" icon={ClipboardCheck} />
         <StatCard label="Active Stay Value" value={formatCurrency(stats.activeStayValue)} detail="Booked accommodation value" icon={WalletCards} />
         <StatCard label="Payments Received" value={formatCurrency(stats.paymentsReceived)} detail="Actual recorded payments" icon={ReceiptText} />
       </section>

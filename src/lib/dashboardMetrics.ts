@@ -1,4 +1,4 @@
-﻿import type { DashboardData, Reservation, Room } from './types';
+import type { DashboardData, Reservation, Room } from './types';
 
 const activeReservationStatuses = new Set(['reserved', 'confirmed', 'checked_in']);
 const departureReservationStatuses = new Set(['checked_in', 'checked_out']);
@@ -51,7 +51,7 @@ export function getDashboardStats(data: DashboardData, operatingDate = new Date(
   const departures = data.reservations.filter(
     (reservation) => reservation.checkOut === operatingDate && departureReservationStatuses.has(reservation.status)
   ).length;
-  const openHousekeeping = data.housekeeping.filter((task) => task.status !== 'verified').length;
+  const openHousekeeping = data.rooms.filter((room) => room.status === 'cleaning').length;
 
   return {
     occupancyRate: getOccupancyRate(data.rooms),

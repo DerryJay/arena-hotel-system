@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   canDeleteRoom,
   isAuthorizedRoomManager,
@@ -64,6 +64,10 @@ describe('room management rules', () => {
   it('allows operational status changes for non-occupied rooms', () => {
     expect(validateRoomSafety({ ...safeState, nextStatus: 'cleaning' })).toEqual({ ok: true });
     expect(validateRoomSafety({ ...safeState, nextStatus: 'blocked' })).toEqual({ ok: true });
+  });
+
+  it('allows a cleaning room to be marked available', () => {
+    expect(validateRoomSafety({ ...safeState, currentStatus: 'cleaning', nextStatus: 'available' })).toEqual({ ok: true });
   });
 
   it('does not allow creating rooms as occupied', () => {

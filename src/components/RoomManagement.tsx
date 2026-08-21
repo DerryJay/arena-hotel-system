@@ -1,5 +1,5 @@
-﻿import Link from 'next/link';
-import { Edit3, Plus, Search } from 'lucide-react';
+import Link from 'next/link';
+import { CheckCircle2, Edit3, Plus, Search } from 'lucide-react';
 import { formatCurrency } from '../lib/dashboardMetrics';
 import type { ManagedRoom, RoomTypeManagementOption } from '../lib/rooms';
 import type { RoomStatus } from '../lib/types';
@@ -164,9 +164,27 @@ export function RoomManagement({ action, editRoomId, error, rooms, roomTypes, se
                       <td>{room.floor || '-'}</td>
                       <td>{room.capacity}</td>
                       <td>
-                        <Link className="icon-text-action" href={`/dashboard/rooms?edit=${room.id}`}>
-                          <Edit3 size={16} /> Edit
-                        </Link>
+                        <div className="room-row-actions">
+                          <Link className="icon-text-action" href={`/dashboard/rooms?edit=${room.id}`}>
+                            <Edit3 size={16} /> Edit
+                          </Link>
+                          {room.status === 'cleaning' ? (
+                            <form action={action}>
+                              <input type="hidden" name="roomId" value={room.id} />
+                              <input type="hidden" name="roomNumber" value={room.roomNumber} />
+                              <input type="hidden" name="roomTypeId" value={room.typeId} />
+                              <input type="hidden" name="floor" value={room.floor} />
+                              <input type="hidden" name="status" value="available" />
+                              <input type="hidden" name="notes" value={room.notes} />
+                              <input type="hidden" name="baseRate" value={room.baseRate} />
+                              <input type="hidden" name="capacity" value={room.capacity} />
+                              <input type="hidden" name="description" value={room.description} />
+                              <button className="secondary-inline-action" type="submit">
+                                <CheckCircle2 size={16} /> Mark Available
+                              </button>
+                            </form>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -60,6 +60,12 @@ describe('booking workflow rules', () => {
     expect(filterAvailableRooms(rooms, [], '2026-09-12', '2026-09-14').map((room) => room.id)).not.toContain('room-104');
   });
 
+  it('offers a room after it is marked available from cleaning', () => {
+    const releasedRooms = rooms.map((room) => room.id === 'room-104' ? { ...room, status: 'available' as const } : room);
+
+    expect(filterAvailableRooms(releasedRooms, [], '2026-09-12', '2026-09-14').map((room) => room.id)).toContain('room-104');
+  });
+
   it('rejects invalid dates and invalid adult count', () => {
     const result = validateBookingInput({
       guestName: 'Guest',

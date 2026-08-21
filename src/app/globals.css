@@ -1035,3 +1035,15 @@ h2 {
     white-space: normal;
   }
 }
+
+
+.room-row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.room-row-actions form {
+  margin: 0;
+}
