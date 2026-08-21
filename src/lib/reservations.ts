@@ -4,7 +4,7 @@ import { getStayNights } from './dashboardMetrics';
 import type { PaymentStatus, ReservationStatus } from './types';
 
 export type ReservationPaymentStatus = 'unpaid' | 'part_paid' | 'paid';
-export type ReservationPaymentMethod = 'cash' | 'bank_transfer' | 'pos_card';
+export type ReservationPaymentMethod = 'cash' | 'bank_transfer' | 'pos_card' | 'paystack_card';
 
 export interface ReservationListItem {
   id: string;

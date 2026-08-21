@@ -1047,3 +1047,20 @@ h2 {
 .room-row-actions form {
   margin: 0;
 }
+
+
+.dashboard-alert--stacked {
+  display: grid;
+  gap: 8px;
+}
+
+.dashboard-alert--stacked span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-alert--stacked code {
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}

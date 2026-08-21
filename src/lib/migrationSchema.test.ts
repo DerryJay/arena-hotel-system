@@ -47,6 +47,11 @@ const checkoutMigration = readFileSync(
   'utf8'
 ).replace(/\s+/g, ' ');
 
+const paystackPaymentMigration = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260821001100_add_paystack_payment_support.sql'),
+  'utf8'
+).replace(/\s+/g, ' ');
+
 describe('initial hotel schema migration', () => {
   it('keeps RLS enabled on tenant-scoped tables', () => {
     for (const table of ['hotels', 'staff_profiles', 'room_types', 'rooms', 'guests', 'reservations', 'housekeeping_tasks', 'folio_charges', 'payments']) {
@@ -218,5 +223,26 @@ describe('checkout reservation RPC migration', () => {
     expect(checkoutMigration).toContain('create or replace function public.record_reservation_payment(');
     expect(checkoutMigration).toContain('v_stay_value + v_folio_total - v_amount_paid');
     expect(checkoutMigration).toContain('Payment amount cannot exceed the outstanding balance.');
+  });
+});
+
+
+describe('Paystack payment support migration', () => {
+  it('adds minimal Paystack provider fields and unique reference protection', () => {
+    expect(paystackPaymentMigration).toContain('add column if not exists provider text');
+    expect(paystackPaymentMigration).toContain('add column if not exists provider_authorization_url text');
+    expect(paystackPaymentMigration).toContain('add column if not exists provider_expected_amount numeric');
+    expect(paystackPaymentMigration).toContain('create unique index if not exists payments_paystack_reference_idx');
+    expect(paystackPaymentMigration).toContain("where provider = 'paystack' and reference is not null");
+  });
+
+  it('stores Paystack payment intents only through authenticated hotel-scoped staff', () => {
+    expect(paystackPaymentMigration).toContain('create or replace function public.create_paystack_payment_intent(');
+    expect(paystackPaymentMigration).toContain('security invoker');
+    expect(paystackPaymentMigration).toContain("v_staff_role not in ('owner', 'front_desk')");
+    expect(paystackPaymentMigration).toContain('reservations.hotel_id = v_staff_hotel_id');
+    expect(paystackPaymentMigration).toContain('Payment amount cannot exceed the outstanding balance.');
+    expect(paystackPaymentMigration).toContain('grant execute on function public.create_paystack_payment_intent');
+    expect(paystackPaymentMigration).not.toContain('grant execute on function public.create_paystack_payment_intent(uuid, numeric, text, text, text, text, text) to anon');
   });
 });

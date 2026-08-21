@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { AlertTriangle, Banknote, CheckCircle2, ClipboardCheck, CreditCard, DoorClosed, Search } from 'lucide-react';
+import { AlertTriangle, Banknote, CheckCircle2, ClipboardCheck, CreditCard, DoorClosed, Link2, Search } from 'lucide-react';
 import { formatCurrency } from '../lib/dashboardMetrics';
 import type { ReservationDetails, ReservationListItem, ReservationPaymentStatus } from '../lib/reservations';
 import type { ReservationStatus } from '../lib/types';
@@ -11,6 +11,11 @@ interface ReservationsManagementProps {
   checkoutAction: (formData: FormData) => Promise<void>;
   checkoutError: string;
   checkoutSuccess: string;
+  paystackAction: (formData: FormData) => Promise<void>;
+  paystackError: string;
+  paystackReference: string;
+  paystackSuccess: string;
+  paystackUrl: string;
   paymentAction: (formData: FormData) => Promise<void>;
   paymentError: string;
   paymentKey: string;
@@ -40,7 +45,8 @@ const paymentStatusLabels: Record<ReservationPaymentStatus, string> = {
 const paymentMethodLabels: Record<string, string> = {
   cash: 'Cash',
   bank_transfer: 'Bank Transfer',
-  pos_card: 'POS/Card'
+  pos_card: 'POS/Card',
+  paystack_card: 'Paystack/Card'
 };
 
 function isCheckInEligible(reservation: ReservationListItem): boolean {
@@ -64,13 +70,15 @@ function formatDateTime(value: string): string {
 }
 
 function PaymentHistory({ reservation }: { reservation: ReservationDetails }) {
-  if (reservation.payments.length === 0) {
+  const receivedPayments = reservation.payments.filter((payment) => payment.status === 'paid' || payment.status === 'partially_paid');
+
+  if (receivedPayments.length === 0) {
     return <p className="empty-state">No payments recorded yet.</p>;
   }
 
   return (
     <div className="payment-list">
-      {reservation.payments.map((payment) => (
+      {receivedPayments.map((payment) => (
         <article className="payment-row" key={payment.id}>
           <div className="payment-row__main">
             <strong>{formatCurrency(payment.amount)}</strong>
@@ -88,12 +96,14 @@ function PaymentHistory({ reservation }: { reservation: ReservationDetails }) {
 function ReservationDetailsPanel({
   checkInAction,
   checkoutAction,
+  paystackAction,
   paymentAction,
   paymentKey,
   reservation
 }: {
   checkInAction: (formData: FormData) => Promise<void>;
   checkoutAction: (formData: FormData) => Promise<void>;
+  paystackAction: (formData: FormData) => Promise<void>;
   paymentAction: (formData: FormData) => Promise<void>;
   paymentKey: string;
   reservation: ReservationDetails;
@@ -205,6 +215,24 @@ function ReservationDetailsPanel({
           <PaymentHistory reservation={reservation} />
         </section>
 
+        <form className="record-payment-form" action={paystackAction}>
+          <h3>Pay Online</h3>
+          <input type="hidden" name="reservationId" value={reservation.id} />
+          <label>
+            Amount to pay
+            <input name="paystackAmount" type="number" min="1" max={Math.max(1, reservation.balance)} step="1" defaultValue={reservation.balance > 0 ? reservation.balance : undefined} required disabled={reservation.balance <= 0} />
+          </label>
+          <label>
+            Guest email
+            <input name="paystackEmail" type="email" defaultValue={reservation.guestEmail} required disabled={reservation.balance <= 0} />
+          </label>
+          {!reservation.guestEmail && reservation.balance > 0 ? <p className="form-message">Paystack requires a customer email for online payment links.</p> : null}
+          {reservation.balance <= 0 ? <p className="form-message">This reservation is fully paid.</p> : null}
+          <button type="submit" disabled={reservation.balance <= 0}>
+            <Link2 size={18} /> Generate Paystack Link
+          </button>
+        </form>
+
         <form className="record-payment-form" action={paymentAction}>
           <h3>Record Payment</h3>
           <input type="hidden" name="reservationId" value={reservation.id} />
@@ -247,6 +275,11 @@ export function ReservationsManagement({
   checkoutAction,
   checkoutError,
   checkoutSuccess,
+  paystackAction,
+  paystackError,
+  paystackReference,
+  paystackSuccess,
+  paystackUrl,
   paymentAction,
   paymentError,
   paymentKey,
@@ -260,6 +293,15 @@ export function ReservationsManagement({
     <section className="reservations-layout">
       {paymentError ? <p className="dashboard-alert dashboard-alert--error">{paymentError}</p> : null}
       {paymentSuccess ? <p className="dashboard-alert dashboard-alert--success"><CheckCircle2 size={18} /> {paymentSuccess}</p> : null}
+      {paystackError ? <p className="dashboard-alert dashboard-alert--error">{paystackError}</p> : null}
+      {paystackSuccess ? (
+        <div className="dashboard-alert dashboard-alert--success dashboard-alert--stacked">
+          <span><CheckCircle2 size={18} /> {paystackSuccess}</span>
+          {paystackUrl ? <a href={paystackUrl} target="_blank" rel="noreferrer">Open Paystack checkout link</a> : null}
+          {paystackUrl ? <code>{paystackUrl}</code> : null}
+          {paystackReference ? <small>Reference: {paystackReference}</small> : null}
+        </div>
+      ) : null}
       {checkInError ? <p className="dashboard-alert dashboard-alert--error">{checkInError}</p> : null}
       {checkInSuccess ? <p className="dashboard-alert dashboard-alert--success"><CheckCircle2 size={18} /> {checkInSuccess}</p> : null}
       {checkoutError ? <p className="dashboard-alert dashboard-alert--error">{checkoutError}</p> : null}
@@ -342,6 +384,7 @@ export function ReservationsManagement({
           <ReservationDetailsPanel
             checkInAction={checkInAction}
             checkoutAction={checkoutAction}
+            paystackAction={paystackAction}
             paymentAction={paymentAction}
             paymentKey={paymentKey}
             reservation={selectedReservation}

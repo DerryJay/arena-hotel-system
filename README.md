@@ -18,7 +18,7 @@ The project uses Next.js because the planned integrations need secure server-sid
 - Meta WhatsApp Cloud API webhooks
 - Transactional hotel booking operations
 
-Browser code must only receive public values such as the Supabase URL and publishable key. Future Paystack, WhatsApp and service-role values belong in server-only route handlers, server actions or deployment secrets.
+Browser code must only receive public values such as the Supabase URL and publishable key. Paystack secret-key operations and trusted webhook fulfillment run only in server-side route handlers/server actions. The separate Supabase admin credential is isolated in a server-only client and is not used for normal dashboard, booking, room, reservation, or staff operations.
 
 ## Environment
 
@@ -27,7 +27,7 @@ Copy `.env.example` to `.env.local` and set:
 - `NEXT_PUBLIC_SUPABASE_URL`: your Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: your Supabase publishable key
 
-Later server-only integrations will also need values such as `PAYSTACK_SECRET_KEY`, `PAYSTACK_WEBHOOK_SECRET`, `META_WHATSAPP_VERIFY_TOKEN`, `META_WHATSAPP_ACCESS_TOKEN` and `SUPABASE_SERVICE_ROLE_KEY`. Keep real values out of Git.
+Paystack online payments require server-only `PAYSTACK_SECRET_KEY` and `SUPABASE_SECRET_KEY`. Prefer the current Supabase secret key format (`sb_secret_...`) for `SUPABASE_SECRET_KEY`; use a legacy service-role key only if the secret key is unavailable. Keep real values out of Git. WhatsApp values such as `META_WHATSAPP_VERIFY_TOKEN` and `META_WHATSAPP_ACCESS_TOKEN` are placeholders for a later integration.
 
 ## First Owner Setup
 

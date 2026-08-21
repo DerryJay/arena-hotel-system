@@ -8,6 +8,7 @@ import { ReservationsManagement } from '../../../components/ReservationsManageme
 import { logoutAction } from '../../../lib/auth/actions';
 import { checkInReservationAction } from '../../../lib/auth/checkInActions';
 import { checkoutReservationAction } from '../../../lib/auth/checkoutActions';
+import { initializePaystackPaymentAction } from '../../../lib/auth/paystackActions';
 import { recordReservationPaymentAction } from '../../../lib/auth/reservationActions';
 import { getDashboardAccess } from '../../../lib/auth/serverAccess';
 import { getReservationsManagementData } from '../../../lib/reservations';
@@ -68,6 +69,11 @@ export default async function ReservationsPage({ searchParams }: ReservationsPag
           checkoutAction={checkoutReservationAction}
           checkoutError={getParam(params, 'checkoutError')}
           checkoutSuccess={getParam(params, 'checkoutSuccess')}
+          paystackAction={initializePaystackPaymentAction}
+          paystackError={getParam(params, 'paystackError')}
+          paystackReference={getParam(params, 'paystackReference')}
+          paystackSuccess={getParam(params, 'paystackSuccess')}
+          paystackUrl={getParam(params, 'paystackUrl')}
           paymentAction={recordReservationPaymentAction}
           paymentError={getParam(params, 'paymentError')}
           paymentKey={randomUUID()}
