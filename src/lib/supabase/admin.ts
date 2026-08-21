@@ -11,7 +11,8 @@ export function createSupabaseAdminClient() {
   return createClient(supabaseUrl, supabaseSecretKey, {
     auth: {
       persistSession: false,
-      autoRefreshToken: false
+      autoRefreshToken: false,
+      detectSessionInUrl: false
     }
   });
 }

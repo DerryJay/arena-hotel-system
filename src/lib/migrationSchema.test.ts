@@ -52,6 +52,11 @@ const paystackPaymentMigration = readFileSync(
   'utf8'
 ).replace(/\s+/g, ' ');
 
+const paystackWebhookGrantsMigration = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260821001200_grant_paystack_webhook_service_role_access.sql'),
+  'utf8'
+).replace(/\s+/g, ' ');
+
 describe('initial hotel schema migration', () => {
   it('keeps RLS enabled on tenant-scoped tables', () => {
     for (const table of ['hotels', 'staff_profiles', 'room_types', 'rooms', 'guests', 'reservations', 'housekeeping_tasks', 'folio_charges', 'payments']) {
@@ -244,5 +249,17 @@ describe('Paystack payment support migration', () => {
     expect(paystackPaymentMigration).toContain('Payment amount cannot exceed the outstanding balance.');
     expect(paystackPaymentMigration).toContain('grant execute on function public.create_paystack_payment_intent');
     expect(paystackPaymentMigration).not.toContain('grant execute on function public.create_paystack_payment_intent(uuid, numeric, text, text, text, text, text) to anon');
+  });
+});
+
+
+describe('Paystack webhook service-role grants migration', () => {
+  it('grants only the trusted webhook role the privileges needed for lookup and fulfillment', () => {
+    expect(paystackWebhookGrantsMigration).toContain('grant usage on schema public to service_role');
+    expect(paystackWebhookGrantsMigration).toContain('grant select, update on table public.payments to service_role');
+    expect(paystackWebhookGrantsMigration).toContain('grant select on table public.reservations to service_role');
+    expect(paystackWebhookGrantsMigration).not.toContain('to anon');
+    expect(paystackWebhookGrantsMigration).not.toContain('to authenticated');
+    expect(paystackWebhookGrantsMigration).not.toContain('grant insert on table public.payments to service_role');
   });
 });
