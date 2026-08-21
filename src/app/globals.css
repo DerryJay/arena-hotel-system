@@ -176,7 +176,7 @@ h2 {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -636,6 +636,240 @@ h2 {
 
 @media (max-width: 1050px) {
   .rooms-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reservations-layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  gap: 18px;
+}
+
+.reservations-grid-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.reservations-table-panel,
+.reservation-detail-panel,
+.reservation-filter {
+  min-width: 0;
+}
+
+.reservations-table td {
+  vertical-align: top;
+}
+
+.reservations-table small,
+.reservation-detail-grid small,
+.finance-strip small,
+.payment-row small {
+  color: #667066;
+  font-weight: 800;
+}
+
+.table-link {
+  color: #0f5132;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.table-link:visited {
+  color: #0f5132;
+}
+
+.reservation-detail-grid,
+.finance-strip {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-bottom: 1px solid #ece6dc;
+}
+
+.reservation-detail-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reservation-detail-grid > div,
+.finance-strip > div {
+  display: grid;
+  gap: 5px;
+}
+
+.finance-strip {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  background: #fbfaf7;
+}
+
+.finance-strip strong {
+  font-size: 1.05rem;
+}
+
+.reservation-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 18px;
+  border-bottom: 1px solid #ece6dc;
+}
+
+.payment-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.85fr);
+  gap: 18px;
+  padding: 18px;
+}
+
+.payment-workspace h3,
+.record-payment-form h3 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.payment-list {
+  display: grid;
+  border: 1px solid #ece6dc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.payment-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid #ece6dc;
+}
+
+.payment-row:last-child {
+  border-bottom: 0;
+}
+
+.payment-row > div,
+.record-payment-form {
+  display: grid;
+  gap: 8px;
+}
+
+.record-payment-form {
+  padding: 14px;
+  border: 1px solid #ece6dc;
+  border-radius: 8px;
+  background: #fbfaf7;
+}
+
+.record-payment-form label {
+  display: grid;
+  gap: 7px;
+  color: #36433a;
+  font-weight: 800;
+}
+
+.record-payment-form input,
+.record-payment-form select,
+.record-payment-form textarea {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cfd8ce;
+  border-radius: 6px;
+  padding: 0 12px;
+  color: #17201a;
+  background: #fff;
+}
+
+.record-payment-form textarea {
+  padding: 12px;
+  resize: vertical;
+}
+
+.record-payment-form button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #fff;
+  background: #0f5132;
+  font-weight: 900;
+}
+
+.payment-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.payment-badge[data-status='unpaid'] {
+  color: #8a3a1f;
+  background: #fff0e8;
+}
+
+.payment-badge[data-status='part_paid'] {
+  color: #8a5b13;
+  background: #fff3d8;
+}
+
+.payment-badge[data-status='paid'] {
+  color: #0f5132;
+  background: #e4efe7;
+}
+
+.status-badge[data-status='confirmed'],
+.status-badge[data-status='reserved'] {
+  color: #4c3fa5;
+  background: #ece9ff;
+}
+
+.status-badge[data-status='pending'] {
+  color: #8a5b13;
+  background: #fff3d8;
+}
+
+.status-badge[data-status='checked_in'] {
+  color: #254a78;
+  background: #e7eef8;
+}
+
+.status-badge[data-status='checked_out'] {
+  color: #0f5132;
+  background: #e4efe7;
+}
+
+.status-badge[data-status='cancelled'],
+.status-badge[data-status='no_show'] {
+  color: #8a3a1f;
+  background: #fff0e8;
+}
+
+@media (max-width: 1120px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .reservations-grid-layout,
+  .payment-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .finance-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .reservation-detail-grid,
+  .finance-strip {
     grid-template-columns: 1fr;
   }
 }

@@ -32,6 +32,11 @@ const roomManagementMigration = readFileSync(
   'utf8'
 ).replace(/\s+/g, ' ');
 
+const paymentRecordingMigration = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260821000800_add_reservation_payment_recording_rpc.sql'),
+  'utf8'
+).replace(/\s+/g, ' ');
+
 describe('initial hotel schema migration', () => {
   it('keeps RLS enabled on tenant-scoped tables', () => {
     for (const table of ['hotels', 'staff_profiles', 'room_types', 'rooms', 'guests', 'reservations', 'housekeeping_tasks', 'folio_charges', 'payments']) {
@@ -136,5 +141,30 @@ describe('room management RPC migration', () => {
     expect(roomManagementMigration).toContain('base_rate = p_base_rate');
     expect(roomManagementMigration).toContain('max_occupancy = p_max_occupancy');
     expect(roomManagementMigration).toContain('grant execute on function public.manage_room');
+  });
+});
+
+describe('reservation payment recording RPC migration', () => {
+  it('adds payment notes and duplicate submission protection', () => {
+    expect(paymentRecordingMigration).toContain('add column if not exists notes text');
+    expect(paymentRecordingMigration).toContain('add column if not exists idempotency_key text');
+    expect(paymentRecordingMigration).toContain('create unique index if not exists payments_hotel_idempotency_key_idx');
+    expect(paymentRecordingMigration).toContain('on public.payments(hotel_id, idempotency_key)');
+  });
+
+  it('records payments only for the authenticated staff hotel', () => {
+    expect(paymentRecordingMigration).toContain('create or replace function public.record_reservation_payment(');
+    expect(paymentRecordingMigration).toContain('security invoker');
+    expect(paymentRecordingMigration).toContain('v_staff_hotel_id := public.current_staff_hotel_id()');
+    expect(paymentRecordingMigration).toContain("v_staff_role not in ('owner', 'front_desk')");
+    expect(paymentRecordingMigration).toContain('reservations.hotel_id = v_staff_hotel_id');
+    expect(paymentRecordingMigration).toContain('for update');
+  });
+
+  it('rejects invalid amounts and returns existing payments for duplicate keys', () => {
+    expect(paymentRecordingMigration).toContain('p_amount is null or p_amount <= 0');
+    expect(paymentRecordingMigration).toContain('Payment amount must be greater than zero.');
+    expect(paymentRecordingMigration).toContain('Payment already recorded.');
+    expect(paymentRecordingMigration).toContain('grant execute on function public.record_reservation_payment');
   });
 });

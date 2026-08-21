@@ -1,5 +1,5 @@
 ﻿import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
-import type { DashboardData, HousekeepingStatus, ReservationStatus, RoomStatus } from './types';
+import type { DashboardData, HousekeepingStatus, PaymentStatus, ReservationStatus, RoomStatus } from './types';
 import type { StaffHotelAccessRecord } from './auth/access';
 import { getReservationStayValue } from './dashboardMetrics';
 
@@ -39,10 +39,13 @@ type HousekeepingRow = {
   } | null;
 };
 
-type AmountRow = {
+type PaymentAmountRow = {
   reservation_id: string;
   amount: number | string;
+  status: PaymentStatus;
 };
+
+const validPaymentStatuses = new Set<PaymentStatus>(['paid', 'partially_paid']);
 
 function toNumber(value: number | string | null | undefined): number {
   if (typeof value === 'number') {
@@ -56,9 +59,12 @@ function toNumber(value: number | string | null | undefined): number {
   return 0;
 }
 
-function sumAmountsByReservation(rows: AmountRow[]): Map<string, number> {
+function sumPaymentsByReservation(rows: PaymentAmountRow[]): Map<string, number> {
   return rows.reduce((amounts, row) => {
-    amounts.set(row.reservation_id, (amounts.get(row.reservation_id) ?? 0) + toNumber(row.amount));
+    if (validPaymentStatuses.has(row.status)) {
+      amounts.set(row.reservation_id, (amounts.get(row.reservation_id) ?? 0) + toNumber(row.amount));
+    }
+
     return amounts;
   }, new Map<string, number>());
 }
@@ -121,25 +127,20 @@ export async function getLiveDashboardData(supabase: SupabaseClient, access: Sta
 
   const reservationRows = (reservationsResponse.data ?? []) as unknown as ReservationRow[];
   const reservationIds = reservationRows.map((reservation) => reservation.id);
-  let chargeTotals = new Map<string, number>();
   let paymentTotals = new Map<string, number>();
 
   if (reservationIds.length > 0) {
-    const [chargesResponse, paymentsResponse] = await Promise.all([
-      supabase.from('folio_charges').select('reservation_id, amount').eq('hotel_id', hotelId).in('reservation_id', reservationIds),
-      supabase.from('payments').select('reservation_id, amount').eq('hotel_id', hotelId).in('reservation_id', reservationIds)
-    ]);
-
-    if (chargesResponse.error) {
-      throwDashboardQueryError('folio charges', chargesResponse.error);
-    }
+    const paymentsResponse = await supabase
+      .from('payments')
+      .select('reservation_id, amount, status')
+      .eq('hotel_id', hotelId)
+      .in('reservation_id', reservationIds);
 
     if (paymentsResponse.error) {
       throwDashboardQueryError('payments', paymentsResponse.error);
     }
 
-    chargeTotals = sumAmountsByReservation((chargesResponse.data ?? []) as unknown as AmountRow[]);
-    paymentTotals = sumAmountsByReservation((paymentsResponse.data ?? []) as unknown as AmountRow[]);
+    paymentTotals = sumPaymentsByReservation((paymentsResponse.data ?? []) as unknown as PaymentAmountRow[]);
   }
 
   return {
@@ -158,7 +159,14 @@ export async function getLiveDashboardData(supabase: SupabaseClient, access: Sta
     })),
     reservations: reservationRows.map((reservation) => {
       const nightlyRate = toNumber(reservation.nightly_rate);
-      const mappedReservation = {
+      const totalStayValue = getReservationStayValue({
+        checkIn: reservation.check_in,
+        checkOut: reservation.check_out,
+        nightlyRate
+      });
+      const amountPaid = paymentTotals.get(reservation.id) ?? 0;
+
+      return {
         id: reservation.id,
         bookingReference: reservation.booking_reference ?? undefined,
         roomNumber: reservation.rooms?.room_number ?? 'Unassigned',
@@ -167,13 +175,9 @@ export async function getLiveDashboardData(supabase: SupabaseClient, access: Sta
         checkIn: reservation.check_in,
         checkOut: reservation.check_out,
         nightlyRate,
-        totalStayValue: 0,
-        balance: Math.max(0, (chargeTotals.get(reservation.id) ?? 0) - (paymentTotals.get(reservation.id) ?? 0))
-      };
-
-      return {
-        ...mappedReservation,
-        totalStayValue: getReservationStayValue(mappedReservation)
+        totalStayValue,
+        amountPaid,
+        balance: Math.max(0, totalStayValue - amountPaid)
       };
     }),
     housekeeping: ((housekeepingResponse.data ?? []) as unknown as HousekeepingRow[]).map((task) => ({

@@ -30,10 +30,18 @@ export function getOccupancyRate(rooms: Room[]): number {
   return Math.round((occupiedRooms / rooms.length) * 100);
 }
 
-export function getExpectedRoomRevenue(reservations: Reservation[]): number {
+export function getActiveStayValue(reservations: Reservation[]): number {
   return reservations
     .filter((reservation) => activeReservationStatuses.has(reservation.status))
     .reduce((total, reservation) => total + reservation.totalStayValue, 0);
+}
+
+export function getPaymentsReceived(reservations: Reservation[]): number {
+  return reservations.reduce((total, reservation) => total + reservation.amountPaid, 0);
+}
+
+export function getExpectedRoomRevenue(reservations: Reservation[]): number {
+  return getActiveStayValue(reservations);
 }
 
 export function getDashboardStats(data: DashboardData, operatingDate = new Date().toISOString().slice(0, 10)) {
@@ -51,6 +59,8 @@ export function getDashboardStats(data: DashboardData, operatingDate = new Date(
     arrivals,
     departures,
     openHousekeeping,
-    expectedRoomRevenue: getExpectedRoomRevenue(data.reservations)
+    activeStayValue: getActiveStayValue(data.reservations),
+    paymentsReceived: getPaymentsReceived(data.reservations),
+    expectedRoomRevenue: getActiveStayValue(data.reservations)
   };
 }

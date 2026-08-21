@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { BedDouble, Building2, CalendarCheck, CheckCircle2, ClipboardCheck, DoorOpen, LogOut, Plus, WalletCards } from 'lucide-react';
+﻿import Link from 'next/link';
+import { BedDouble, Building2, CalendarCheck, CheckCircle2, ClipboardCheck, DoorOpen, LogOut, Plus, ReceiptText, WalletCards } from 'lucide-react';
 import { StatCard } from './StatCard';
 import type { DashboardData, HousekeepingStatus, Reservation, ReservationStatus, RoomStatus } from '../lib/types';
 import { formatCurrency, getDashboardStats } from '../lib/dashboardMetrics';
@@ -67,6 +67,9 @@ export function Dashboard({ data, staffName, logoutAction, checkInAction, checkI
           <h1>{data.hotel.name}</h1>
         </div>
         <div className="topbar__actions">
+          <Link className="text-action" href="/dashboard/reservations">
+            <ReceiptText size={18} /> Reservations
+          </Link>
           <Link className="text-action" href="/dashboard/rooms">
             <Building2 size={18} /> Rooms
           </Link>
@@ -98,7 +101,8 @@ export function Dashboard({ data, staffName, logoutAction, checkInAction, checkI
         <StatCard label="Arrivals" value={String(stats.arrivals)} detail="Expected today" icon={CalendarCheck} />
         <StatCard label="Departures" value={String(stats.departures)} detail="Expected today" icon={DoorOpen} />
         <StatCard label="Housekeeping" value={String(stats.openHousekeeping)} detail="Open room tasks" icon={ClipboardCheck} />
-        <StatCard label="Room revenue" value={formatCurrency(stats.expectedRoomRevenue)} detail="Active stay value" icon={WalletCards} />
+        <StatCard label="Active Stay Value" value={formatCurrency(stats.activeStayValue)} detail="Booked accommodation value" icon={WalletCards} />
+        <StatCard label="Payments Received" value={formatCurrency(stats.paymentsReceived)} detail="Actual recorded payments" icon={ReceiptText} />
       </section>
 
       <section className="workspace-grid">
@@ -136,6 +140,7 @@ export function Dashboard({ data, staffName, logoutAction, checkInAction, checkI
                     <span>{reservation.guestName} - Room {reservation.roomNumber}</span>
                     <span>{reservation.checkIn} to {reservation.checkOut}</span>
                     <span>{formatCurrency(reservation.totalStayValue)} total - {formatCurrency(reservation.nightlyRate)}/night</span>
+                    <span>{formatCurrency(reservation.amountPaid)} paid - {formatCurrency(reservation.balance)} balance</span>
                     {isCheckInEligible(reservation) && isEarlyCheckIn(reservation) ? (
                       <small className="reservation-warning">Early check-in: scheduled for {reservation.checkIn}</small>
                     ) : null}

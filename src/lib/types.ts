@@ -35,6 +35,7 @@ export interface Reservation {
   checkOut: string;
   nightlyRate: number;
   totalStayValue: number;
+  amountPaid: number;
   balance: number;
 }
 

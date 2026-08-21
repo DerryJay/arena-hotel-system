@@ -1,5 +1,11 @@
 ﻿import { describe, expect, it } from 'vitest';
-import { getDashboardStats, getExpectedRoomRevenue, getOccupancyRate, getReservationStayValue } from './dashboardMetrics';
+import {
+  getDashboardStats,
+  getExpectedRoomRevenue,
+  getOccupancyRate,
+  getPaymentsReceived,
+  getReservationStayValue
+} from './dashboardMetrics';
 import type { DashboardData } from './types';
 
 const dashboardData: DashboardData = {
@@ -24,6 +30,7 @@ const dashboardData: DashboardData = {
       checkOut: '2026-09-10',
       nightlyRate: 25000,
       totalStayValue: 25000,
+      amountPaid: 25000,
       balance: 0
     },
     {
@@ -36,7 +43,8 @@ const dashboardData: DashboardData = {
       checkOut: '2026-09-12',
       nightlyRate: 35000,
       totalStayValue: 70000,
-      balance: 70000
+      amountPaid: 30000,
+      balance: 40000
     },
     {
       id: 'res-3',
@@ -47,7 +55,8 @@ const dashboardData: DashboardData = {
       checkOut: '2026-09-11',
       nightlyRate: 25000,
       totalStayValue: 25000,
-      balance: 0
+      amountPaid: 0,
+      balance: 25000
     }
   ],
   housekeeping: [
@@ -65,8 +74,9 @@ describe('dashboard metrics', () => {
     expect(getReservationStayValue({ checkIn: '2026-09-10', checkOut: '2026-09-13', nightlyRate: 25000 })).toBe(75000);
   });
 
-  it('totals expected active stay value from live reservation statuses', () => {
+  it('totals active stay value separately from recorded payments', () => {
     expect(getExpectedRoomRevenue(dashboardData.reservations)).toBe(95000);
+    expect(getPaymentsReceived(dashboardData.reservations)).toBe(55000);
   });
 
   it('summarizes the core hotel dashboard for the operating date', () => {
@@ -76,6 +86,8 @@ describe('dashboard metrics', () => {
       arrivals: 1,
       departures: 1,
       openHousekeeping: 1,
+      activeStayValue: 95000,
+      paymentsReceived: 55000,
       expectedRoomRevenue: 95000
     });
   });
@@ -85,6 +97,8 @@ describe('dashboard metrics', () => {
       arrivals: 0,
       departures: 0,
       openHousekeeping: 0,
+      activeStayValue: 0,
+      paymentsReceived: 0,
       expectedRoomRevenue: 0
     });
   });
